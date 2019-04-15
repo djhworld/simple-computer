@@ -166,8 +166,8 @@ type CPU struct {
 	ir     components.Register
 	iar    components.Register
 
-	instructionDecoderEnables [2]components.Decoder2x4
-	instructionDecoderSet     components.Decoder2x4
+	aluInstructionDecoderEnables [2]components.Decoder2x4
+	aluInstructionDecoderSet     components.Decoder2x4
 
 	regEnableGates [3]circuit.ANDGate
 	regSetGates    [6]circuit.ANDGate
@@ -214,9 +214,9 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.ir.Disable()
 
 	c.iar = *components.NewRegister("IAR", c.mainBus, c.mainBus)
-	c.instructionDecoderEnables[0] = *components.NewDecoder2x4()
-	c.instructionDecoderEnables[1] = *components.NewDecoder2x4()
-	c.instructionDecoderSet = *components.NewDecoder2x4()
+	c.aluInstructionDecoderEnables[0] = *components.NewDecoder2x4()
+	c.aluInstructionDecoderEnables[1] = *components.NewDecoder2x4()
+	c.aluInstructionDecoderSet = *components.NewDecoder2x4()
 
 	c.tmpBus = components.NewBus()
 
@@ -325,7 +325,6 @@ func (c *CPU) Run() {
 	c.gpReg3.Unset()
 	c.gpReg3.Update()
 
-
 	r := 0
 	counter := ratecounter.NewRateCounter(1 * time.Second)
 	c.clock.Start()
@@ -387,7 +386,7 @@ func (c *CPU) step(clockState bool) {
 		c.updateStates()
 	}
 
-//	fmt.Println(c)
+	//	fmt.Println(c)
 }
 
 func (c *CPU) updateStates() {
@@ -479,31 +478,31 @@ func (c *CPU) runEnableOnRegisterA() {
 
 func (c *CPU) runEnableGeneralPurposeRegisters(state bool) {
 
-	c.instructionDecoderEnables[0].Update(c.ir.Bit(6), c.ir.Bit(7))
-	c.instructionDecoderEnables[1].Update(c.ir.Bit(4), c.ir.Bit(5))
+	c.aluInstructionDecoderEnables[0].Update(c.ir.Bit(6), c.ir.Bit(7))
+	c.aluInstructionDecoderEnables[1].Update(c.ir.Bit(4), c.ir.Bit(5))
 
 	// R0
-	c.gpRegEnableANDGates[0].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables[0].GetOutputWire(0))
-	c.gpRegEnableANDGates[4].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables[1].GetOutputWire(0))
+	c.gpRegEnableANDGates[0].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(0))
+	c.gpRegEnableANDGates[4].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(0))
 	c.gpRegEnableORGates[0].Update(c.gpRegEnableANDGates[4].Output(), c.gpRegEnableANDGates[0].Output())
 	updateEnableStatus(&c.gpReg0, c.gpRegEnableORGates[0].Output())
 
 	// R1
-	c.gpRegEnableANDGates[1].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables[0].GetOutputWire(1))
-	c.gpRegEnableANDGates[5].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables[1].GetOutputWire(1))
+	c.gpRegEnableANDGates[1].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(1))
+	c.gpRegEnableANDGates[5].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(1))
 	c.gpRegEnableORGates[1].Update(c.gpRegEnableANDGates[5].Output(), c.gpRegEnableANDGates[1].Output())
 	updateEnableStatus(&c.gpReg1, c.gpRegEnableORGates[1].Output())
 
 	// R2
 	// this register should be enabled at some point but isn't....
-	c.gpRegEnableANDGates[2].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables[0].GetOutputWire(2))
-	c.gpRegEnableANDGates[6].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables[1].GetOutputWire(2))
+	c.gpRegEnableANDGates[2].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(2))
+	c.gpRegEnableANDGates[6].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(2))
 	c.gpRegEnableORGates[2].Update(c.gpRegEnableANDGates[6].Output(), c.gpRegEnableANDGates[2].Output())
 	updateEnableStatus(&c.gpReg2, c.gpRegEnableORGates[2].Output())
 
 	// R3
-	c.gpRegEnableANDGates[3].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables[0].GetOutputWire(3))
-	c.gpRegEnableANDGates[7].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables[1].GetOutputWire(3))
+	c.gpRegEnableANDGates[3].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(3))
+	c.gpRegEnableANDGates[7].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(3))
 	c.gpRegEnableORGates[3].Update(c.gpRegEnableANDGates[7].Output(), c.gpRegEnableANDGates[3].Output())
 	updateEnableStatus(&c.gpReg3, c.gpRegEnableORGates[3].Output())
 }
@@ -550,22 +549,22 @@ func (c *CPU) runSetOnRegisterB() {
 }
 
 func (c *CPU) runSetGeneralPurposeRegisters(state bool) {
-	c.instructionDecoderSet.Update(c.ir.Bit(6), c.ir.Bit(7))
+	c.aluInstructionDecoderSet.Update(c.ir.Bit(6), c.ir.Bit(7))
 
 	// R0
-	c.gpRegSetANDGates[0].Update(state, c.registerBSet.Get(), c.instructionDecoderSet.GetOutputWire(0))
+	c.gpRegSetANDGates[0].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(0))
 	updateSetStatus(&c.gpReg0, c.gpRegSetANDGates[0].Output())
 
 	// R1
-	c.gpRegSetANDGates[1].Update(state, c.registerBSet.Get(), c.instructionDecoderSet.GetOutputWire(1))
+	c.gpRegSetANDGates[1].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(1))
 	updateSetStatus(&c.gpReg1, c.gpRegSetANDGates[1].Output())
 
 	// R2
-	c.gpRegSetANDGates[2].Update(state, c.registerBSet.Get(), c.instructionDecoderSet.GetOutputWire(2))
+	c.gpRegSetANDGates[2].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(2))
 	updateSetStatus(&c.gpReg2, c.gpRegSetANDGates[2].Output())
 
 	// R3
-	c.gpRegSetANDGates[3].Update(state, c.registerBSet.Get(), c.instructionDecoderSet.GetOutputWire(3))
+	c.gpRegSetANDGates[3].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(3))
 	updateSetStatus(&c.gpReg3, c.gpRegSetANDGates[3].Output())
 }
 
