@@ -24,3 +24,15 @@ func (b *Bus) SetInputWire(index int, value bool) {
 func (b *Bus) GetOutputWire(index int) bool {
 	return b.wires[index].Get()
 }
+
+func (b *Bus) String() string {
+	result := ""
+	for i := 0; i < 8; i++ {
+		if b.GetOutputWire(i) {
+			result += "1"
+		} else {
+			result += "0"
+		}
+	}
+	return result
+}

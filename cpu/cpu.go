@@ -11,6 +11,54 @@ import (
 	"github.com/paulbellamy/ratecounter"
 )
 
+// LOADS
+// ----------------------
+// arg A = memory address to load from
+// arg B = register to store value in
+// 0x00 = LD R0, R0
+// 0x01 = LD R0, R1
+// 0x02 = LD R0, R2
+// 0x03 = LD R0, R3
+
+// 0x04 = LD R1, R0
+// 0x05 = LD R1, R1
+// 0x06 = LD R1, R2
+// 0x07 = LD R1, R3
+
+// 0x08 = LD R2, R0
+// 0x09 = LD R2, R1
+// 0x0A = LD R2, R2
+// 0x0B = LD R2, R3
+
+// 0x0C = LD R3, R0
+// 0x0D = LD R3, R1
+// 0x0E = LD R3, R2
+// 0x0F = LD R3, R3
+
+// STORES
+// ----------------------
+// arg A = memory address for value
+// arg B = value to store in memory
+// 0x10 = ST R0, R0
+// 0x11 = ST R0, R1
+// 0x12 = ST R0, R2
+// 0x13 = ST R0, R3
+
+// 0x14 = ST R1, R0
+// 0x15 = ST R1, R1
+// 0x16 = ST R1, R2
+// 0x17 = ST R1, R3
+
+// 0x18 = ST R2, R0
+// 0x19 = ST R2, R1
+// 0x1A = ST R2, R2
+// 0x1B = ST R2, R3
+
+// 0x1C = ST R3, R0
+// 0x1D = ST R3, R1
+// 0x1E = ST R3, R2
+// 0x1F = ST R3, R3
+
 // ADDS
 // ----------------------
 // 0x80 = ADD R0, R0
@@ -156,6 +204,23 @@ type Updatable interface {
 	Update()
 }
 
+type InstructionDecoder3x8 struct {
+	decoder       components.Decoder3x8
+	selectorGates [8]circuit.ANDGate
+	bit0NOTGate   circuit.NOTGate
+}
+
+func NewInstructionDecoder3x8() *InstructionDecoder3x8 {
+	i := new(InstructionDecoder3x8)
+	i.decoder = *components.NewDecoder3x8()
+	for n := range i.selectorGates {
+		i.selectorGates[n] = *circuit.NewANDGate()
+	}
+	i.bit0NOTGate = *circuit.NewNOTGate()
+	return i
+
+}
+
 type CPU struct {
 	gpReg0 components.Register
 	gpReg1 components.Register
@@ -166,25 +231,44 @@ type CPU struct {
 	ir     components.Register
 	iar    components.Register
 
-	aluInstructionDecoderEnables [2]components.Decoder2x4
-	aluInstructionDecoderSet     components.Decoder2x4
+	instrDecoder3x8              InstructionDecoder3x8
+	instructionDecoderEnables2x4 [2]components.Decoder2x4
+	instructionDecoderSet2x4     components.Decoder2x4
 
-	regEnableGates [3]circuit.ANDGate
-	regSetGates    [6]circuit.ANDGate
+	irInstructionANDGate components.ANDGate3
+	irInstructionNOTGate circuit.NOTGate
 
-	gpRegEnableANDGates [8]components.ANDGate3
-	gpRegEnableORGates  [4]circuit.ORGate
-	gpRegSetANDGates    [4]components.ANDGate3
+	registerAEnableORGate components.ORGate3
+	registerBEnableORGate components.ORGate4
+	registerBSetORGate    components.ORGate4
+	registerAEnable       circuit.Wire
+	registerBEnable       circuit.Wire
+	accEnableORGate       components.ORGate4
+	accEnableANDGate      circuit.ANDGate
+	busOneEnableORGate    components.ORGate4
+	iarEnableORGate       components.ORGate4
+	iarEnableANDGate      circuit.ANDGate
+	ramEnableORGate       components.ORGate5
+	ramEnableANDGate      circuit.ANDGate
+	gpRegEnableANDGates   [8]components.ANDGate3
+	gpRegEnableORGates    [4]circuit.ORGate
+	gpRegSetANDGates      [4]components.ANDGate3
 
-	registerBSetANDGate1 components.ANDGate3
-	registerBSetANDGate2 components.ANDGate3
-	registerBSetNOTGate  circuit.NOTGate
-	registerBSet         circuit.Wire
+	irSetANDGate  circuit.ANDGate
+	marSetORGate  components.ORGate6
+	marSetANDGate circuit.ANDGate
+	iarSetORGate  components.ORGate6
+	iarSetANDGate circuit.ANDGate
+	accSetORGate  components.ORGate4
+	accSetANDGate circuit.ANDGate
+	ramSetANDGate circuit.ANDGate
+	tmpSetANDGate circuit.ANDGate
+	registerBSet  circuit.Wire
 
-	registerAEnable        circuit.Wire
-	registerAEnableANDGate circuit.ANDGate
-	registerBEnable        circuit.Wire
-	registerBEnableANDGate circuit.ANDGate
+	step4Gates     [9]circuit.ANDGate
+	step5Gates     [7]circuit.ANDGate
+	step6Gates     [2]components.ANDGate3
+	step6Gates2And circuit.ANDGate
 
 	aluOpAndGates [3]components.ANDGate3
 
@@ -203,8 +287,8 @@ type CPU struct {
 func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c := new(CPU)
 
+	// REGISTERS
 	c.controlBus = components.NewBus()
-
 	c.mainBus = mainBus
 	c.gpReg0 = *components.NewRegister("R0", c.mainBus, c.mainBus)
 	c.gpReg1 = *components.NewRegister("R1", c.mainBus, c.mainBus)
@@ -212,43 +296,67 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.gpReg3 = *components.NewRegister("R3", c.mainBus, c.mainBus)
 	c.ir = *components.NewRegister("IR", c.mainBus, c.controlBus)
 	c.ir.Disable()
-
 	c.iar = *components.NewRegister("IAR", c.mainBus, c.mainBus)
-	c.aluInstructionDecoderEnables[0] = *components.NewDecoder2x4()
-	c.aluInstructionDecoderEnables[1] = *components.NewDecoder2x4()
-	c.aluInstructionDecoderSet = *components.NewDecoder2x4()
 
+	// Decoders
+	c.instructionDecoderEnables2x4[0] = *components.NewDecoder2x4()
+	c.instructionDecoderEnables2x4[1] = *components.NewDecoder2x4()
+	c.instructionDecoderSet2x4 = *components.NewDecoder2x4()
+
+	c.instrDecoder3x8 = *NewInstructionDecoder3x8()
+
+	// TMP
 	c.tmpBus = components.NewBus()
-
 	c.tmp = *components.NewRegister("TMP", c.mainBus, c.tmpBus)
 	c.tmp.Enable()
 
-	//TODO this needs a receiving bus
+	// BUS 1
 	c.busOneOutput = components.NewBus()
 	c.busOne = *components.NewBusOne(c.tmpBus, c.busOneOutput)
 
+	// ACC
 	c.accBus = components.NewBus()
 	c.acc = *components.NewRegister("ACC", c.accBus, c.mainBus)
 
-	c.stepper = components.NewStepper()
-	c.clock = &components.Clock{}
-	c.alu = alu.NewALU(c.mainBus, c.busOneOutput, c.accBus)
-	c.memory = memory
+	// IR Register Output
+	c.irInstructionANDGate = *components.NewANDGate3()
+	c.irInstructionNOTGate = *circuit.NewNOTGate()
 
-	c.registerBSetANDGate1 = *components.NewANDGate3()
-	c.registerBSetANDGate2 = *components.NewANDGate3()
-	c.registerBSetNOTGate = *circuit.NewNOTGate()
+	// Enables
+	c.registerAEnableORGate = *components.NewORGate3()
+	c.registerBEnableORGate = *components.NewORGate4()
+	c.registerBSetORGate = *components.NewORGate4()
+	c.accEnableORGate = *components.NewORGate4()
+	c.accEnableANDGate = *circuit.NewANDGate()
+	c.busOneEnableORGate = *components.NewORGate4()
+	c.iarEnableORGate = *components.NewORGate4()
+	c.iarEnableANDGate = *circuit.NewANDGate()
+	c.ramEnableORGate = *components.NewORGate5()
+	c.ramEnableANDGate = *circuit.NewANDGate()
 
-	c.registerAEnableANDGate = *circuit.NewANDGate()
-	c.registerBEnableANDGate = *circuit.NewANDGate()
+	// Sets
+	c.irSetANDGate = *circuit.NewANDGate()
+	c.marSetORGate = *components.NewORGate6()
+	c.marSetANDGate = *circuit.NewANDGate()
+	c.iarSetORGate = *components.NewORGate6()
+	c.iarSetANDGate = *circuit.NewANDGate()
+	c.accSetORGate = *components.NewORGate4()
+	c.accSetANDGate = *circuit.NewANDGate()
+	c.ramSetANDGate = *circuit.NewANDGate()
+	c.tmpSetANDGate = *circuit.NewANDGate()
 
-	for i := range c.regEnableGates {
-		c.regEnableGates[i] = *circuit.NewANDGate()
+	for i := range c.step4Gates {
+		c.step4Gates[i] = *circuit.NewANDGate()
 	}
 
-	for i := range c.regSetGates {
-		c.regSetGates[i] = *circuit.NewANDGate()
+	for i := range c.step5Gates {
+		c.step5Gates[i] = *circuit.NewANDGate()
 	}
+
+	for i := range c.step6Gates {
+		c.step6Gates[i] = *components.NewANDGate3()
+	}
+	c.step6Gates2And = *circuit.NewANDGate()
 
 	for i := range c.gpRegEnableORGates {
 		c.gpRegEnableORGates[i] = *circuit.NewORGate()
@@ -265,6 +373,11 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	for i := range c.aluOpAndGates {
 		c.aluOpAndGates[i] = *components.NewANDGate3()
 	}
+
+	c.stepper = components.NewStepper()
+	c.clock = &components.Clock{}
+	c.alu = alu.NewALU(c.mainBus, c.busOneOutput, c.accBus)
+	c.memory = memory
 
 	return c
 }
@@ -370,6 +483,9 @@ func (c *CPU) String() string {
 func (c *CPU) step(clockState bool) {
 
 	c.stepper.Update(clockState)
+	c.runStep4Gates()
+	c.runStep5Gates()
+	c.runStep6Gates()
 
 	//TODO this is problematic
 	c.runEnable(clockState)
@@ -423,6 +539,7 @@ func (c *CPU) updateStates() {
 	// R3
 	runUpdateOn(&c.gpReg3)
 
+	c.updateInstructionDecoder3x8()
 	c.updateALU()
 }
 
@@ -439,132 +556,222 @@ func (c *CPU) updateALU() {
 
 }
 
+func (c *CPU) updateInstructionDecoder3x8() {
+	c.instrDecoder3x8.bit0NOTGate.Update(c.ir.Bit(0))
+
+	c.instrDecoder3x8.decoder.Update(c.ir.Bit(1), c.ir.Bit(2), c.ir.Bit(3))
+
+	for i := 0; i < 8; i++ {
+		c.instrDecoder3x8.selectorGates[i].Update(c.instrDecoder3x8.decoder.GetOutputWire(i), c.instrDecoder3x8.bit0NOTGate.Output())
+	}
+}
+
+func (c *CPU) runStep4Gates() {
+	c.step4Gates[0].Update(c.stepper.GetOutputWire(3), c.ir.Bit(0))
+
+	gate := 1
+	for selector := 0; selector < 8; selector++ {
+		c.step4Gates[gate].Update(c.stepper.GetOutputWire(3), c.instrDecoder3x8.selectorGates[selector].Output())
+		gate++
+	}
+}
+
+func (c *CPU) runStep5Gates() {
+	c.step5Gates[0].Update(c.stepper.GetOutputWire(4), c.ir.Bit(0))
+	c.step5Gates[1].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[0].Output())
+	c.step5Gates[2].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[1].Output())
+	c.step5Gates[3].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[2].Output())
+
+	c.step5Gates[4].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[4].Output())
+	c.step5Gates[5].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[5].Output())
+
+	//TODO - this has a not gate attached to it
+	//	c.step5Gates[6].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[5].Output())
+}
+
+func (c *CPU) runStep6Gates() {
+	//TODO rename registerBSetNotGate?
+
+	c.step6Gates[0].Update(c.stepper.GetOutputWire(5), c.ir.Bit(0), c.irInstructionNOTGate.Output())
+	c.step6Gates2And.Update(c.stepper.GetOutputWire(5), c.instrDecoder3x8.selectorGates[2].Output())
+	//TODO this has something to do with flags register
+	//	c.step6Gates[1].Update(c.stepper.GetOutputWire(5), c.instrDecoder3x8.selectorGates[5].Output(),
+}
+
 func (c *CPU) runEnable(state bool) {
-	// IAR
-	c.regEnableGates[0].Update(state, c.stepper.GetOutputWire(0))
-	updateEnableStatus(&c.iar, c.regEnableGates[0].Output())
-
-	// RAM
-	c.regEnableGates[1].Update(state, c.stepper.GetOutputWire(1))
-	updateEnableStatus(c.memory, c.regEnableGates[1].Output())
-
-	// ACC
-	c.regEnableGates[2].Update(state, c.stepper.GetOutputWire(2))
-	updateEnableStatus(&c.acc, c.regEnableGates[2].Output())
-
-	// BUS1
-	updateEnableStatus(&c.busOne, c.stepper.GetOutputWire(0))
-
+	c.runEnableOnIAR(state)
+	c.runEnableOnBusOne(state)
+	c.runEnableOnACC(state)
+	c.runEnableOnRAM(state)
 	c.runEnableOnRegisterB()
 	c.runEnableOnRegisterA()
 	c.runEnableGeneralPurposeRegisters(state)
 }
 
 func (c *CPU) runEnableOnRegisterB() {
-	c.registerBEnableANDGate.Update(c.ir.Bit(0), c.stepper.GetOutputWire(3))
-	c.registerBEnable.Update(c.registerBEnableANDGate.Output())
-
-	// TMP - hmmmm
-	updateSetStatus(&c.tmp, c.registerBEnableANDGate.Output())
+	c.registerBEnableORGate.Update(c.step4Gates[0].Output(), c.step5Gates[2].Output(), c.step4Gates[4].Output(), c.step4Gates[8].Output())
+	c.registerBEnable.Update(c.registerBEnableORGate.Output())
 }
 
 func (c *CPU) runEnableOnRegisterA() {
-	c.registerAEnableANDGate.Update(c.ir.Bit(0), c.stepper.GetOutputWire(4))
-	c.registerAEnable.Update(c.registerAEnableANDGate.Output())
+	c.registerAEnableORGate.Update(c.step4Gates[1].Output(), c.step4Gates[2].Output(), c.step5Gates[0].Output())
+	c.registerAEnable.Update(c.registerAEnableORGate.Output())
+}
 
-	// ACC - hmmmm
-	updateSetStatus(&c.acc, c.registerAEnableANDGate.Output())
+func (c *CPU) runEnableOnBusOne(state bool) {
+	c.busOneEnableORGate.Update(c.stepper.GetOutputWire(0), c.step4Gates[7].Output(), c.step4Gates[6].Output(), c.step4Gates[3].Output())
+	updateEnableStatus(&c.busOne, c.busOneEnableORGate.Output())
+}
+
+func (c *CPU) runEnableOnACC(state bool) {
+	c.accEnableORGate.Update(c.stepper.GetOutputWire(2), c.step5Gates[5].Output(), c.step6Gates[1].Output(), c.step6Gates[0].Output())
+	c.accEnableANDGate.Update(state, c.accEnableORGate.Output())
+	updateEnableStatus(&c.acc, c.accEnableANDGate.Output())
+}
+
+func (c *CPU) runEnableOnIAR(state bool) {
+	c.iarEnableORGate.Update(c.stepper.GetOutputWire(0), c.step4Gates[3].Output(), c.step4Gates[5].Output(), c.step4Gates[6].Output())
+	c.iarEnableANDGate.Update(state, c.iarEnableORGate.Output())
+	updateEnableStatus(&c.iar, c.iarEnableANDGate.Output())
+}
+
+func (c *CPU) runEnableOnRAM(state bool) {
+	c.ramEnableORGate.Update(
+		c.stepper.GetOutputWire(1),
+		c.step6Gates[1].Output(),
+		c.step5Gates[4].Output(),
+		c.step5Gates[3].Output(),
+		c.step5Gates[1].Output(),
+	)
+	c.ramEnableANDGate.Update(state, c.ramEnableORGate.Output())
+	updateEnableStatus(c.memory, c.ramEnableANDGate.Output())
 }
 
 func (c *CPU) runEnableGeneralPurposeRegisters(state bool) {
 
-	c.aluInstructionDecoderEnables[0].Update(c.ir.Bit(6), c.ir.Bit(7))
-	c.aluInstructionDecoderEnables[1].Update(c.ir.Bit(4), c.ir.Bit(5))
+	c.instructionDecoderEnables2x4[0].Update(c.ir.Bit(6), c.ir.Bit(7))
+	c.instructionDecoderEnables2x4[1].Update(c.ir.Bit(4), c.ir.Bit(5))
 
 	// R0
-	c.gpRegEnableANDGates[0].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(0))
-	c.gpRegEnableANDGates[4].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(0))
+	c.gpRegEnableANDGates[0].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables2x4[0].GetOutputWire(0))
+	c.gpRegEnableANDGates[4].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables2x4[1].GetOutputWire(0))
 	c.gpRegEnableORGates[0].Update(c.gpRegEnableANDGates[4].Output(), c.gpRegEnableANDGates[0].Output())
 	updateEnableStatus(&c.gpReg0, c.gpRegEnableORGates[0].Output())
 
 	// R1
-	c.gpRegEnableANDGates[1].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(1))
-	c.gpRegEnableANDGates[5].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(1))
+	c.gpRegEnableANDGates[1].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables2x4[0].GetOutputWire(1))
+	c.gpRegEnableANDGates[5].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables2x4[1].GetOutputWire(1))
 	c.gpRegEnableORGates[1].Update(c.gpRegEnableANDGates[5].Output(), c.gpRegEnableANDGates[1].Output())
 	updateEnableStatus(&c.gpReg1, c.gpRegEnableORGates[1].Output())
 
 	// R2
 	// this register should be enabled at some point but isn't....
-	c.gpRegEnableANDGates[2].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(2))
-	c.gpRegEnableANDGates[6].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(2))
+	c.gpRegEnableANDGates[2].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables2x4[0].GetOutputWire(2))
+	c.gpRegEnableANDGates[6].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables2x4[1].GetOutputWire(2))
 	c.gpRegEnableORGates[2].Update(c.gpRegEnableANDGates[6].Output(), c.gpRegEnableANDGates[2].Output())
 	updateEnableStatus(&c.gpReg2, c.gpRegEnableORGates[2].Output())
 
 	// R3
-	c.gpRegEnableANDGates[3].Update(state, c.registerBEnable.Get(), c.aluInstructionDecoderEnables[0].GetOutputWire(3))
-	c.gpRegEnableANDGates[7].Update(state, c.registerAEnable.Get(), c.aluInstructionDecoderEnables[1].GetOutputWire(3))
+	c.gpRegEnableANDGates[3].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables2x4[0].GetOutputWire(3))
+	c.gpRegEnableANDGates[7].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables2x4[1].GetOutputWire(3))
 	c.gpRegEnableORGates[3].Update(c.gpRegEnableANDGates[7].Output(), c.gpRegEnableANDGates[3].Output())
 	updateEnableStatus(&c.gpReg3, c.gpRegEnableORGates[3].Output())
 }
 
 func (c *CPU) runSet(state bool) {
+	c.irInstructionANDGate.Update(c.ir.Bit(3), c.ir.Bit(2), c.ir.Bit(1))
+	c.irInstructionNOTGate.Update(c.irInstructionANDGate.Output())
 
-	// IR
-	c.regSetGates[0].Update(state, c.stepper.GetOutputWire(1))
-	updateSetStatus(&c.ir, c.regSetGates[0].Output())
-
-	// MAR
-	c.regSetGates[1].Update(state, c.stepper.GetOutputWire(0))
-	updateSetStatus(&c.memory.AddressRegister, c.regSetGates[1].Output())
-
-	// IAR
-	c.regSetGates[2].Update(state, c.stepper.GetOutputWire(2))
-	updateSetStatus(&c.iar, c.regSetGates[2].Output())
-
-	// ACC
-	c.regSetGates[3].Update(state, c.stepper.GetOutputWire(0))
-	updateSetStatus(&c.acc, c.regSetGates[3].Output())
-
-	// TMP
-	// - not in original document...
-	c.regSetGates[5].Update(state, c.stepper.GetOutputWire(0))
-	updateSetStatus(&c.tmp, c.regSetGates[5].Output())
-
-	// RAM
-	c.regSetGates[4].Update(state, false)
-	updateSetStatus(c.memory, c.regSetGates[4].Output())
-
+	c.runSetOnMAR(state)
+	c.runSetOnIAR(state)
+	c.runSetOnIR(state)
+	c.runSetOnACC(state)
+	c.runSetOnRAM(state)
+	c.runSetOnTMP(state)
 	c.runSetOnRegisterB()
 	c.runSetGeneralPurposeRegisters(state)
 }
 
-func (c *CPU) runSetOnRegisterB() {
-	c.registerBSetANDGate1.Update(c.ir.Bit(3), c.ir.Bit(2), c.ir.Bit(1))
-	c.registerBSetNOTGate.Update(c.registerBSetANDGate1.Output())
-	c.registerBSetANDGate2.Update(c.stepper.GetOutputWire(5), c.ir.Bit(0), c.registerBSetNOTGate.Output())
-	c.registerBSet.Update(c.registerBSetANDGate2.Output())
+func (c *CPU) runSetOnMAR(state bool) {
+	c.marSetORGate.Update(
+		c.stepper.GetOutputWire(0),
+		c.step4Gates[3].Output(),
+		c.step4Gates[6].Output(),
+		c.step4Gates[1].Output(),
+		c.step4Gates[2].Output(),
+		c.step4Gates[5].Output(),
+	)
+	c.marSetANDGate.Update(state, c.marSetORGate.Output())
+	updateSetStatus(&c.memory.AddressRegister, c.marSetANDGate.Output())
+}
 
-	// ACC - hmmmmm
-	updateEnableStatus(&c.acc, c.registerBSetANDGate2.Output())
+func (c *CPU) runSetOnIAR(state bool) {
+	c.iarSetORGate.Update(
+		c.stepper.GetOutputWire(2),
+		c.step4Gates[4].Output(),
+		c.step5Gates[4].Output(),
+		c.step5Gates[5].Output(),
+		c.step6Gates2And.Output(),
+		c.step6Gates[1].Output(),
+	)
+	c.iarSetANDGate.Update(state, c.iarSetORGate.Output())
+	updateSetStatus(&c.iar, c.iarSetANDGate.Output())
+}
+
+func (c *CPU) runSetOnIR(state bool) {
+	c.irSetANDGate.Update(state, c.stepper.GetOutputWire(1))
+	updateSetStatus(&c.ir, c.irSetANDGate.Output())
+}
+
+func (c *CPU) runSetOnACC(state bool) {
+	c.accSetORGate.Update(
+		c.stepper.GetOutputWire(0),
+		c.step4Gates[3].Output(),
+		c.step4Gates[6].Output(),
+		c.step5Gates[0].Output(),
+	)
+	c.accSetANDGate.Update(state, c.accSetORGate.Output())
+	updateSetStatus(&c.acc, c.accSetANDGate.Output())
+}
+
+func (c *CPU) runSetOnRAM(state bool) {
+	c.ramSetANDGate.Update(state, c.step5Gates[2].Output())
+	updateSetStatus(c.memory, c.ramSetANDGate.Output())
+}
+
+func (c *CPU) runSetOnTMP(state bool) {
+	c.tmpSetANDGate.Update(state, c.step4Gates[0].Output())
+	updateSetStatus(&c.tmp, c.tmpSetANDGate.Output())
+}
+
+func (c *CPU) runSetOnRegisterB() {
+	c.registerBSetORGate.Update(
+		c.step5Gates[1].Output(),
+		c.step6Gates[0].Output(),
+		c.step5Gates[3].Output(),
+		c.step5Gates[6].Output(),
+	)
+
+	c.registerBSet.Update(c.registerBSetORGate.Output())
 }
 
 func (c *CPU) runSetGeneralPurposeRegisters(state bool) {
-	c.aluInstructionDecoderSet.Update(c.ir.Bit(6), c.ir.Bit(7))
+	c.instructionDecoderSet2x4.Update(c.ir.Bit(6), c.ir.Bit(7))
 
 	// R0
-	c.gpRegSetANDGates[0].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(0))
+	c.gpRegSetANDGates[0].Update(state, c.registerBSet.Get(), c.instructionDecoderSet2x4.GetOutputWire(0))
 	updateSetStatus(&c.gpReg0, c.gpRegSetANDGates[0].Output())
 
 	// R1
-	c.gpRegSetANDGates[1].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(1))
+	c.gpRegSetANDGates[1].Update(state, c.registerBSet.Get(), c.instructionDecoderSet2x4.GetOutputWire(1))
 	updateSetStatus(&c.gpReg1, c.gpRegSetANDGates[1].Output())
 
 	// R2
-	c.gpRegSetANDGates[2].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(2))
+	c.gpRegSetANDGates[2].Update(state, c.registerBSet.Get(), c.instructionDecoderSet2x4.GetOutputWire(2))
 	updateSetStatus(&c.gpReg2, c.gpRegSetANDGates[2].Output())
 
 	// R3
-	c.gpRegSetANDGates[3].Update(state, c.registerBSet.Get(), c.aluInstructionDecoderSet.GetOutputWire(3))
+	c.gpRegSetANDGates[3].Update(state, c.registerBSet.Get(), c.instructionDecoderSet2x4.GetOutputWire(3))
 	updateSetStatus(&c.gpReg3, c.gpRegSetANDGates[3].Output())
 }
 

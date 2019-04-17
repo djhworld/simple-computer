@@ -53,6 +53,135 @@ func (e *Enabler) Update(enable bool) {
 	}
 }
 
+type ORGate4 struct {
+	inputA circuit.Wire
+	inputB circuit.Wire
+	inputC circuit.Wire
+	inputD circuit.Wire
+	orA    circuit.ORGate
+	orB    circuit.ORGate
+	orC    circuit.ORGate
+	output circuit.Wire
+}
+
+func NewORGate4() *ORGate4 {
+	a := new(ORGate4)
+
+	a.inputA = *circuit.NewWire("a", false)
+	a.inputB = *circuit.NewWire("b", false)
+	a.inputC = *circuit.NewWire("c", false)
+	a.inputD = *circuit.NewWire("d", false)
+	a.output = *circuit.NewWire("o", false)
+
+	a.orA = *circuit.NewORGate()
+	a.orB = *circuit.NewORGate()
+	a.orC = *circuit.NewORGate()
+
+	return a
+}
+
+func (g *ORGate4) Update(inputA, inputB, inputC, inputD bool) {
+	g.orA.Update(inputA, inputB)
+	g.orB.Update(g.orA.Output(), inputC)
+	g.orC.Update(g.orB.Output(), inputD)
+	g.output.Update(g.orC.Output())
+}
+
+func (g *ORGate4) Output() bool {
+	return g.output.Get()
+}
+
+type ORGate5 struct {
+	inputA circuit.Wire
+	inputB circuit.Wire
+	inputC circuit.Wire
+	inputD circuit.Wire
+	inputE circuit.Wire
+	orA    circuit.ORGate
+	orB    circuit.ORGate
+	orC    circuit.ORGate
+	orD    circuit.ORGate
+	output circuit.Wire
+}
+
+func NewORGate5() *ORGate5 {
+	a := new(ORGate5)
+
+	a.inputA = *circuit.NewWire("a", false)
+	a.inputB = *circuit.NewWire("b", false)
+	a.inputC = *circuit.NewWire("c", false)
+	a.inputD = *circuit.NewWire("d", false)
+	a.inputE = *circuit.NewWire("e", false)
+	a.output = *circuit.NewWire("o", false)
+
+	a.orA = *circuit.NewORGate()
+	a.orB = *circuit.NewORGate()
+	a.orC = *circuit.NewORGate()
+	a.orD = *circuit.NewORGate()
+
+	return a
+}
+
+func (g *ORGate5) Update(inputA, inputB, inputC, inputD, inputE bool) {
+	g.orA.Update(inputA, inputB)
+	g.orB.Update(g.orA.Output(), inputC)
+	g.orC.Update(g.orB.Output(), inputD)
+	g.orD.Update(g.orC.Output(), inputE)
+	g.output.Update(g.orD.Output())
+}
+
+func (g *ORGate5) Output() bool {
+	return g.output.Get()
+}
+
+type ORGate6 struct {
+	inputA circuit.Wire
+	inputB circuit.Wire
+	inputC circuit.Wire
+	inputD circuit.Wire
+	inputE circuit.Wire
+	inputF circuit.Wire
+	orA    circuit.ORGate
+	orB    circuit.ORGate
+	orC    circuit.ORGate
+	orD    circuit.ORGate
+	orE    circuit.ORGate
+	output circuit.Wire
+}
+
+func NewORGate6() *ORGate6 {
+	a := new(ORGate6)
+
+	a.inputA = *circuit.NewWire("a", false)
+	a.inputB = *circuit.NewWire("b", false)
+	a.inputC = *circuit.NewWire("c", false)
+	a.inputD = *circuit.NewWire("d", false)
+	a.inputE = *circuit.NewWire("e", false)
+	a.inputF = *circuit.NewWire("f", false)
+	a.output = *circuit.NewWire("o", false)
+
+	a.orA = *circuit.NewORGate()
+	a.orB = *circuit.NewORGate()
+	a.orC = *circuit.NewORGate()
+	a.orD = *circuit.NewORGate()
+	a.orE = *circuit.NewORGate()
+
+	return a
+}
+
+func (g *ORGate6) Update(inputA, inputB, inputC, inputD, inputE, inputF bool) {
+	g.orA.Update(inputA, inputB)
+	g.orB.Update(g.orA.Output(), inputC)
+	g.orC.Update(g.orB.Output(), inputD)
+	g.orD.Update(g.orC.Output(), inputE)
+	g.orE.Update(g.orD.Output(), inputF)
+	g.output.Update(g.orE.Output())
+}
+
+func (g *ORGate6) Output() bool {
+	return g.output.Get()
+}
+
 type ANDGate4 struct {
 	inputA circuit.Wire
 	inputB circuit.Wire
@@ -119,6 +248,40 @@ func (g *ANDGate3) Update(inputA bool, inputB bool, inputC bool) {
 	g.andB.Update(g.andA.Output(), inputC)
 
 	g.output.Update(g.andB.Output())
+}
+
+type ORGate3 struct {
+	inputA circuit.Wire
+	inputB circuit.Wire
+	inputC circuit.Wire
+	orA    circuit.ORGate
+	orB    circuit.ORGate
+	output circuit.Wire
+}
+
+func NewORGate3() *ORGate3 {
+	a := new(ORGate3)
+
+	a.inputA = *circuit.NewWire("a", false)
+	a.inputB = *circuit.NewWire("b", false)
+	a.inputC = *circuit.NewWire("c", false)
+	a.output = *circuit.NewWire("d", false)
+
+	a.orA = *circuit.NewORGate()
+	a.orB = *circuit.NewORGate()
+
+	return a
+}
+
+func (g *ORGate3) Output() bool {
+	return g.output.Get()
+}
+
+func (g *ORGate3) Update(inputA bool, inputB bool, inputC bool) {
+	g.orA.Update(inputA, inputB)
+	g.orB.Update(g.orA.Output(), inputC)
+
+	g.output.Update(g.orB.Output())
 }
 
 // TODO not sure if this is exactly how this should look...

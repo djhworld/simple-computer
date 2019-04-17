@@ -70,6 +70,10 @@ func NewDecoder3x8() *Decoder3x8 {
 	return d
 }
 
+func (d *Decoder3x8) GetOutputWire(index int) bool {
+	return d.outputs[index].Get()
+}
+
 // Returns the index which is enabled
 func (d *Decoder3x8) Index() int {
 	for i := range d.outputs {
