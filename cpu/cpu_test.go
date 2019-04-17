@@ -73,12 +73,6 @@ func TestSTThenLD(t *testing.T) {
 	}
 }
 
-func setRegisters(c *CPU, values [4]byte) {
-	for i, v := range values {
-		setRegister(c, i, v)
-	}
-}
-
 func TestLD4Times(t *testing.T) {
 	b := components.NewBus()
 	m := memory.NewMemory256(b)
@@ -197,6 +191,104 @@ func testST(instruction byte, inputRegisters [4]byte, expectedValueAddress, expe
 		t.Logf("Expected register 0 to have value of: %X but got %X", expectedValue, c.gpReg0.Value())
 		t.FailNow()
 	}
+}
+
+func TestDATA(t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	var insAddr byte = 0x00
+
+	// DATA R0
+	setMemoryLocation(c, insAddr, 0x20)
+	setMemoryLocation(c, insAddr+1, 0x71)
+
+	// DATA R1
+	setMemoryLocation(c, insAddr+2, 0x21)
+	setMemoryLocation(c, insAddr+3, 0x72)
+
+	// DATA R2
+	setMemoryLocation(c, insAddr+4, 0x22)
+	setMemoryLocation(c, insAddr+5, 0x73)
+
+	// DATA R3
+	setMemoryLocation(c, insAddr+6, 0x23)
+	setMemoryLocation(c, insAddr+7, 0x74)
+
+	setIAR(c, insAddr)
+
+	setRegisters(c, [4]byte{0x01, 0x01, 0x01, 0x01})
+
+	for i := 0; i < 4; i++ {
+		doFetchDecodeExecute(c)
+	}
+
+	checkRegisters(c, 0x71, 0x72, 0x73, 0x74, t)
+
+	// check IAR has incremented 2 each time
+	checkIAR(c, 0x08, t)
+}
+
+func TestJMPR(t *testing.T) {
+	testJMPR(0x30, [4]byte{0x83, 0x01, 0x01, 0x01}, 0x83, t)
+	testJMPR(0x31, [4]byte{0x01, 0xF1, 0x01, 0x01}, 0xF1, t)
+	testJMPR(0x32, [4]byte{0x01, 0x01, 0xBB, 0x01}, 0xBB, t)
+	testJMPR(0x33, [4]byte{0x01, 0x01, 0x01, 0x19}, 0x19, t)
+}
+
+func testJMPR(instruction byte, inputRegisters [4]byte, expectedIAR byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	var insAddr byte = 0x00
+
+	// JMPR
+	setMemoryLocation(c, insAddr, instruction)
+
+	setIAR(c, insAddr)
+
+	setRegisters(c, inputRegisters)
+
+	doFetchDecodeExecute(c)
+
+	// registers shouldn't change
+	checkRegisters(c, inputRegisters[0], inputRegisters[1], inputRegisters[2], inputRegisters[3], t)
+
+	// check IAR has jumped to the new location
+	checkIAR(c, expectedIAR, t)
+}
+
+func TestJMP(t *testing.T) {
+	for i := 0; i < 0xFF; i++ {
+		testJMP(byte(i), t)
+	}
+}
+
+func testJMP(expectedIAR byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	var insAddr byte = 0x00
+
+	// JMP
+	setMemoryLocation(c, insAddr, 0x40)
+	setMemoryLocation(c, insAddr+1, expectedIAR)
+
+	setIAR(c, insAddr)
+
+	inputRegisters := [4]byte{0x01, 0x01, 0x01, 0x01}
+	setRegisters(c, inputRegisters)
+
+	doFetchDecodeExecute(c)
+
+	// registers shouldn't change
+	checkRegisters(c, inputRegisters[0], inputRegisters[1], inputRegisters[2], inputRegisters[3], t)
+
+	// check IAR has jumped to the new location
+	checkIAR(c, expectedIAR, t)
 }
 
 func TestALUAdd(t *testing.T) {
@@ -482,4 +574,10 @@ func checkRegisters(c *CPU, expReg0, expReg1, expReg2, expReg3 byte, t *testing.
 		t.FailNow()
 	}
 
+}
+
+func setRegisters(c *CPU, values [4]byte) {
+	for i, v := range values {
+		setRegister(c, i, v)
+	}
 }

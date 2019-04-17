@@ -59,6 +59,27 @@ import (
 // 0x1E = ST R3, R2
 // 0x1F = ST R3, R3
 
+// DATA
+// put value in memory into register (2 byte instruction)
+// ----------------------
+// 0x20 = DATA R0
+// 0x21 = DATA R1
+// 0x22 = DATA R2
+// 0x23 = DATA R3
+
+// JMPR
+// set instruction address register to value in register
+// ----------------------
+// 0x30 = JMPR R0
+// 0x31 = JMPR R1
+// 0x32 = JMPR R2
+// 0x33 = JMPR R3
+
+// JMP
+// set instruction address register to next byte (2 byte instruction)
+// ----------------------
+// 0x40 = JMP <value>
+
 // ADDS
 // ----------------------
 // 0x80 = ADD R0, R0
@@ -83,24 +104,24 @@ import (
 
 // SHR
 // ----------------------
-// 0x90 R0
-// 0x95 R1
-// 0x9A R2
-// 0x9F R3
+// 0x90 = SHR R0
+// 0x95 = SHR R1
+// 0x9A = SHR R2
+// 0x9F = SHR R3
 
 // SHL
 // ----------------------
-// 0xA0 R0
-// 0xA5 R1
-// 0xAA R2
-// 0xAF R3
+// 0xA0 = SHL R0
+// 0xA5 = SHL R1
+// 0xAA = SHL R2
+// 0xAF = SHL R3
 
 // NOT
 // ----------------------
-// 0xB0 R0
-// 0xB5 R1
-// 0xBA R2
-// 0xBF R3
+// 0xB0 = NOT R0
+// 0xB5 = NOT R1
+// 0xBA = NOT R2
+// 0xBF = NOT R3
 
 // ANDS
 // ----------------------
@@ -515,9 +536,6 @@ func (c *CPU) updateStates() {
 	// IR
 	runUpdateOn(&c.ir)
 
-	// ACC
-	runUpdateOn(&c.acc)
-
 	// RAM
 	runUpdateOn(c.memory)
 
@@ -526,6 +544,9 @@ func (c *CPU) updateStates() {
 
 	// BUS1
 	runUpdateOn(&c.busOne)
+
+	// ACC
+	runUpdateOn(&c.acc)
 
 	// R0
 	runUpdateOn(&c.gpReg0)
@@ -624,8 +645,9 @@ func (c *CPU) runEnableOnBusOne(state bool) {
 }
 
 func (c *CPU) runEnableOnACC(state bool) {
-	c.accEnableORGate.Update(c.stepper.GetOutputWire(2), c.step5Gates[5].Output(), c.step6Gates[1].Output(), c.step6Gates[0].Output())
+	c.accEnableORGate.Update(c.stepper.GetOutputWire(2), c.step5Gates[5].Output(), c.step6Gates2And.Output(), c.step6Gates[0].Output())
 	c.accEnableANDGate.Update(state, c.accEnableORGate.Output())
+
 	updateEnableStatus(&c.acc, c.accEnableANDGate.Output())
 }
 
