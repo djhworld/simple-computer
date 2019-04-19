@@ -80,14 +80,25 @@ import (
 // ----------------------
 // 0x40 = JMP <value>
 
-// JMP(C|A|E|Z)
+// JMP(CAEZ)
 // set instruction address register to next byte (2 byte instruction)
-// jump if <flag> is true
+// jump if <flag(s)> is true
 // ----------------------
-// 0x58 = JMPC <value>
-// 0x54 = JMPA <value>
-// 0x52 = JMPE <value>
 // 0x51 = JMPZ <value>
+// 0x52 = JMPE <value>
+// 0x53 = JMPEZ <value>
+// 0x54 = JMPA <value>
+// 0x55 = JMPAZ <value>
+// 0x56 = JMPAE <value>
+// 0x57 = JMPAEZ <value>
+// 0x58 = JMPC <value>
+// 0x59 = JMPCZ <value>
+// 0x5A = JMPCE <value>
+// 0x5B = JMPCEZ <value>
+// 0x5C = JMPCA <value>
+// 0x5D = JMPCAZ <value>
+// 0x5E = JMPCAE <value>
+// 0x5F = JMPCAEZ <value>
 
 // ADDS
 // ----------------------
