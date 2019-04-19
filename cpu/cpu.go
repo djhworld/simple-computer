@@ -82,7 +82,7 @@ import (
 
 // JMP(CAEZ)
 // set instruction address register to next byte (2 byte instruction)
-// jump if <flag(s)> is true
+// jump if <flag(s)> are true
 // ----------------------
 // 0x51 = JMPZ <value>
 // 0x52 = JMPE <value>
