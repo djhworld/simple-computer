@@ -80,6 +80,15 @@ import (
 // ----------------------
 // 0x40 = JMP <value>
 
+// JMP(C|A|E|Z)
+// set instruction address register to next byte (2 byte instruction)
+// jump if <flag> is true
+// ----------------------
+// 0x58 = JMPC <value>
+// 0x54 = JMPA <value>
+// 0x52 = JMPE <value>
+// 0x51 = JMPZ <value>
+
 // ADDS
 // ----------------------
 // 0x80 = ADD R0, R0
@@ -251,6 +260,7 @@ type CPU struct {
 	acc    components.Register
 	ir     components.Register
 	iar    components.Register
+	flags  components.Register
 
 	instrDecoder3x8              InstructionDecoder3x8
 	instructionDecoderEnables2x4 [2]components.Decoder2x4
@@ -275,16 +285,21 @@ type CPU struct {
 	gpRegEnableORGates    [4]circuit.ORGate
 	gpRegSetANDGates      [4]components.ANDGate3
 
-	irSetANDGate  circuit.ANDGate
-	marSetORGate  components.ORGate6
-	marSetANDGate circuit.ANDGate
-	iarSetORGate  components.ORGate6
-	iarSetANDGate circuit.ANDGate
-	accSetORGate  components.ORGate4
-	accSetANDGate circuit.ANDGate
-	ramSetANDGate circuit.ANDGate
-	tmpSetANDGate circuit.ANDGate
-	registerBSet  circuit.Wire
+	irSetANDGate    circuit.ANDGate
+	marSetORGate    components.ORGate6
+	marSetANDGate   circuit.ANDGate
+	iarSetORGate    components.ORGate6
+	iarSetANDGate   circuit.ANDGate
+	accSetORGate    components.ORGate4
+	accSetANDGate   circuit.ANDGate
+	ramSetANDGate   circuit.ANDGate
+	tmpSetANDGate   circuit.ANDGate
+	flagsSetORGate  circuit.ORGate
+	flagsSetANDGate circuit.ANDGate
+	registerBSet    circuit.Wire
+
+	flagStateGates  [4]circuit.ANDGate
+	flagStateORGate components.ORGate4
 
 	step4Gates     [9]circuit.ANDGate
 	step5Gates     [7]circuit.ANDGate
@@ -293,16 +308,18 @@ type CPU struct {
 
 	aluOpAndGates [3]components.ANDGate3
 
-	busOne       components.BusOne
-	mainBus      *components.Bus
-	tmpBus       *components.Bus
-	busOneOutput *components.Bus
-	controlBus   *components.Bus
-	accBus       *components.Bus
-	memory       *memory.Memory256
-	alu          *alu.ALU
-	stepper      *components.Stepper
-	clock        *components.Clock
+	busOne        components.BusOne
+	mainBus       *components.Bus
+	tmpBus        *components.Bus
+	busOneOutput  *components.Bus
+	controlBus    *components.Bus
+	accBus        *components.Bus
+	aluToFlagsBus *components.Bus
+	flagsBus      *components.Bus
+	memory        *memory.Memory256
+	alu           *alu.ALU
+	stepper       *components.Stepper
+	clock         *components.Clock
 }
 
 func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
@@ -325,6 +342,12 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.instructionDecoderSet2x4 = *components.NewDecoder2x4()
 
 	c.instrDecoder3x8 = *NewInstructionDecoder3x8()
+
+	// FLAGS
+	c.aluToFlagsBus = components.NewBus()
+	c.flagsBus = components.NewBus()
+	c.flags = *components.NewRegister("FLAGS", c.aluToFlagsBus, c.flagsBus)
+	c.flags.Enable()
 
 	// TMP
 	c.tmpBus = components.NewBus()
@@ -365,6 +388,8 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.accSetANDGate = *circuit.NewANDGate()
 	c.ramSetANDGate = *circuit.NewANDGate()
 	c.tmpSetANDGate = *circuit.NewANDGate()
+	c.flagsSetORGate = *circuit.NewORGate()
+	c.flagsSetANDGate = *circuit.NewANDGate()
 
 	for i := range c.step4Gates {
 		c.step4Gates[i] = *circuit.NewANDGate()
@@ -378,6 +403,11 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 		c.step6Gates[i] = *components.NewANDGate3()
 	}
 	c.step6Gates2And = *circuit.NewANDGate()
+
+	for i := range c.flagStateGates {
+		c.flagStateGates[i] = *circuit.NewANDGate()
+	}
+	c.flagStateORGate = *components.NewORGate4()
 
 	for i := range c.gpRegEnableORGates {
 		c.gpRegEnableORGates[i] = *circuit.NewORGate()
@@ -397,68 +427,13 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 
 	c.stepper = components.NewStepper()
 	c.clock = &components.Clock{}
-	c.alu = alu.NewALU(c.mainBus, c.busOneOutput, c.accBus)
+	c.alu = alu.NewALU(c.mainBus, c.busOneOutput, c.accBus, c.aluToFlagsBus)
 	c.memory = memory
 
 	return c
 }
 
 func (c *CPU) Run() {
-	setBus(c.mainBus, 0x00)
-
-	c.iar.Set()
-	c.iar.Update()
-	c.iar.Unset()
-	c.iar.Update()
-
-	var i byte
-	var q byte = 0xFF
-	for i = 0x00; i < 0xFF; i++ {
-		c.memory.AddressRegister.Set()
-		setBus(c.mainBus, i)
-		c.memory.Update()
-
-		c.memory.AddressRegister.Unset()
-		c.memory.Update()
-
-		setBus(c.mainBus, 0x8B)
-		c.memory.Set()
-		c.memory.Update()
-
-		c.memory.Unset()
-		c.memory.Update()
-
-		q--
-	}
-
-	c.gpReg0.Set()
-	c.gpReg0.Update()
-	setBus(c.mainBus, 0x01)
-	c.gpReg0.Update()
-	c.gpReg0.Unset()
-	c.gpReg0.Update()
-
-	c.gpReg1.Set()
-	c.gpReg1.Update()
-	setBus(c.mainBus, 0x02)
-	c.gpReg1.Update()
-	c.gpReg1.Unset()
-	c.gpReg1.Update()
-
-	c.gpReg2.Set()
-	c.gpReg2.Update()
-	setBus(c.mainBus, 0x03)
-	c.gpReg2.Update()
-	c.gpReg2.Unset()
-	c.gpReg2.Update()
-
-	c.gpReg3.Set()
-	c.gpReg3.Update()
-	setBus(c.mainBus, 0x01)
-	c.gpReg3.Update()
-	c.gpReg3.Unset()
-	c.gpReg3.Update()
-
 	r := 0
 	counter := ratecounter.NewRateCounter(1 * time.Second)
 	c.clock.Start()
@@ -485,7 +460,7 @@ func (c *CPU) Run() {
 }
 
 func (c *CPU) String() string {
-	return fmt.Sprintf("stepper: %s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\nbus1: %s\n%s\n",
+	return fmt.Sprintf("stepper: %s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\nbus1: %s\n%s\n%s\n",
 		c.stepper.String(),
 		c.iar.String(),
 		c.memory.AddressRegister.String(),
@@ -498,6 +473,7 @@ func (c *CPU) String() string {
 		c.gpReg3.String(),
 		c.busOne.String(),
 		c.alu.String(),
+		c.flags.String(),
 	)
 }
 
@@ -522,8 +498,6 @@ func (c *CPU) step(clockState bool) {
 		c.runSet(false)
 		c.updateStates()
 	}
-
-	//	fmt.Println(c)
 }
 
 func (c *CPU) updateStates() {
@@ -541,6 +515,9 @@ func (c *CPU) updateStates() {
 
 	// TMP
 	runUpdateOn(&c.tmp)
+
+	// FLAGS
+	runUpdateOn(&c.flags)
 
 	// BUS1
 	runUpdateOn(&c.busOne)
@@ -611,12 +588,9 @@ func (c *CPU) runStep5Gates() {
 }
 
 func (c *CPU) runStep6Gates() {
-	//TODO rename registerBSetNotGate?
-
 	c.step6Gates[0].Update(c.stepper.GetOutputWire(5), c.ir.Bit(0), c.irInstructionNOTGate.Output())
 	c.step6Gates2And.Update(c.stepper.GetOutputWire(5), c.instrDecoder3x8.selectorGates[2].Output())
-	//TODO this has something to do with flags register
-	//	c.step6Gates[1].Update(c.stepper.GetOutputWire(5), c.instrDecoder3x8.selectorGates[5].Output(),
+	c.step6Gates[1].Update(c.stepper.GetOutputWire(5), c.instrDecoder3x8.selectorGates[5].Output(), c.flagStateORGate.Output())
 }
 
 func (c *CPU) runEnable(state bool) {
@@ -704,14 +678,35 @@ func (c *CPU) runSet(state bool) {
 	c.irInstructionANDGate.Update(c.ir.Bit(3), c.ir.Bit(2), c.ir.Bit(1))
 	c.irInstructionNOTGate.Update(c.irInstructionANDGate.Output())
 
+	c.refreshFlagStateGates()
+
 	c.runSetOnMAR(state)
 	c.runSetOnIAR(state)
 	c.runSetOnIR(state)
 	c.runSetOnACC(state)
 	c.runSetOnRAM(state)
 	c.runSetOnTMP(state)
+	c.runSetOnFLAGS(state)
 	c.runSetOnRegisterB()
 	c.runSetGeneralPurposeRegisters(state)
+}
+
+func (c *CPU) refreshFlagStateGates() {
+	// C
+	c.flagStateGates[0].Update(c.ir.Bit(4), c.flagsBus.GetOutputWire(0))
+	// A
+	c.flagStateGates[1].Update(c.ir.Bit(5), c.flagsBus.GetOutputWire(1))
+	// E
+	c.flagStateGates[2].Update(c.ir.Bit(6), c.flagsBus.GetOutputWire(2))
+	// Z
+	c.flagStateGates[3].Update(c.ir.Bit(7), c.flagsBus.GetOutputWire(3))
+
+	c.flagStateORGate.Update(
+		c.flagStateGates[0].Output(),
+		c.flagStateGates[1].Output(),
+		c.flagStateGates[2].Output(),
+		c.flagStateGates[3].Output(),
+	)
 }
 
 func (c *CPU) runSetOnMAR(state bool) {
@@ -754,6 +749,15 @@ func (c *CPU) runSetOnACC(state bool) {
 	)
 	c.accSetANDGate.Update(state, c.accSetORGate.Output())
 	updateSetStatus(&c.acc, c.accSetANDGate.Output())
+}
+
+func (c *CPU) runSetOnFLAGS(state bool) {
+	c.flagsSetORGate.Update(
+		c.step5Gates[0].Output(),
+		c.step4Gates[7].Output(),
+	)
+	c.flagsSetANDGate.Update(state, c.flagsSetORGate.Output())
+	updateSetStatus(&c.flags, c.flagsSetANDGate.Output())
 }
 
 func (c *CPU) runSetOnRAM(state bool) {

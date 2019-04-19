@@ -19,9 +19,10 @@ const (
 )
 
 type ALU struct {
-	inputABus *components.Bus
-	inputBBus *components.Bus
-	outputBus *components.Bus
+	inputABus      *components.Bus
+	inputBBus      *components.Bus
+	outputBus      *components.Bus
+	flagsOutputBus *components.Bus
 
 	inputA [8]circuit.Wire
 	inputB [8]circuit.Wire
@@ -49,11 +50,12 @@ type ALU struct {
 	andGates    [3]circuit.ANDGate
 }
 
-func NewALU(inputABus, inputBBus, outputBus *components.Bus) *ALU {
+func NewALU(inputABus, inputBBus, outputBus, flagsOutputBus *components.Bus) *ALU {
 	a := new(ALU)
 	a.inputABus = inputABus
 	a.inputBBus = inputBBus
 	a.outputBus = outputBus
+	a.flagsOutputBus = flagsOutputBus
 
 	a.opDecoder = *components.NewDecoder3x8()
 
@@ -246,4 +248,13 @@ func (a *ALU) Update() {
 	for i := 8 - 1; i >= 0; i-- {
 		a.outputBus.SetInputWire(i, a.output[i].Get())
 	}
+
+	a.flagsOutputBus.SetInputWire(0, a.CarryOut.Get())
+	a.flagsOutputBus.SetInputWire(1, a.AisLarger.Get())
+	a.flagsOutputBus.SetInputWire(2, a.IsEqual.Get())
+	a.flagsOutputBus.SetInputWire(3, a.isZero.GetOutputWire(0))
+	a.flagsOutputBus.SetInputWire(4, false)
+	a.flagsOutputBus.SetInputWire(5, false)
+	a.flagsOutputBus.SetInputWire(6, false)
+	a.flagsOutputBus.SetInputWire(7, false)
 }

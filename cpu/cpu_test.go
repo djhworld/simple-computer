@@ -42,6 +42,89 @@ func TestInstructionReceivedFromMemory(t *testing.T) {
 	}
 }
 
+func TestFlagsRegisterAllFalse(t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, 0x81)
+	setRegisters(c, [4]byte{0x09, 0x0A, 0x02, 0x03})
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkFlagsRegister(c, false, false, false, false, t)
+}
+
+func TestFlagsRegisterCarryFlagEnabled(t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, 0x81)
+	setRegisters(c, [4]byte{0x20, 0xFF, 0x02, 0x03})
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkFlagsRegister(c, true, false, false, false, t)
+}
+
+func TestFlagsRegisterIsLargerFlagEnabled(t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, 0x81)
+	setRegisters(c, [4]byte{0x21, 0x20, 0x02, 0x03})
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkFlagsRegister(c, false, true, false, false, t)
+}
+
+func TestFlagsRegisterIsEqualsFlagEnabled(t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, 0x81)
+	setRegisters(c, [4]byte{0x21, 0x21, 0x02, 0x03})
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkFlagsRegister(c, false, false, true, false, t)
+}
+
+func TestFlagsRegisterIsZeroFlagEnabled(t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, 0x81)
+	setRegisters(c, [4]byte{0x01, 0xFF, 0x02, 0x03})
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkFlagsRegister(c, true, false, false, true, t)
+}
+
+func TestFlagsRegisterMultipleEnabled(t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, 0x81)
+	setRegisters(c, [4]byte{0xFF, 0x01, 0x02, 0x03})
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkFlagsRegister(c, true, true, false, true, t)
+}
 func TestSTThenLD(t *testing.T) {
 	b := components.NewBus()
 	m := memory.NewMemory256(b)
@@ -288,6 +371,53 @@ func testJMP(expectedIAR byte, t *testing.T) {
 	checkRegisters(c, inputRegisters[0], inputRegisters[1], inputRegisters[2], inputRegisters[3], t)
 
 	// check IAR has jumped to the new location
+	checkIAR(c, expectedIAR, t)
+}
+
+func TestJMPC(t *testing.T) {
+	testJMPConditional(0x58, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	// should not jump in false case
+	testJMPConditional(0x58, 0x91, 0x81, [4]byte{0x05, 0x06, 0x01, 0x01}, 0x03, t)
+}
+
+func TestJMPA(t *testing.T) {
+	testJMPConditional(0x54, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	// should not jump in false case
+	testJMPConditional(0x54, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+}
+
+func TestJMPE(t *testing.T) {
+	testJMPConditional(0x52, 0xAE, 0xF1, [4]byte{0x00, 0x00, 0x01, 0x2}, 0xAE, t)
+	// should not jump in false case
+	testJMPConditional(0x52, 0xAF, 0xF1, [4]byte{0x10, 0x11, 0x01, 0x01}, 0x03, t)
+}
+func TestJMPZ(t *testing.T) {
+	// perform NOT on R0 (0xFF) to trigger zero flag
+	testJMPConditional(0x51, 0xAE, 0xB0, [4]byte{0xFF, 0x01, 0x01, 0x1}, 0xAE, t)
+
+	// should not jump in false case
+	testJMPConditional(0x51, 0xAF, 0xB0, [4]byte{0x00, 0x11, 0x01, 0x01}, 0x03, t)
+}
+
+func testJMPConditional(jmpConditionInstr, destination, initialInstr byte, inputRegisters [4]byte, expectedIAR byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	var insAddr byte = 0x00
+
+	setMemoryLocation(c, insAddr, initialInstr)
+	setMemoryLocation(c, insAddr+1, jmpConditionInstr)
+	setMemoryLocation(c, insAddr+2, destination)
+
+	setIAR(c, insAddr)
+
+	setRegisters(c, inputRegisters)
+
+	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
+
+	// check IAR
 	checkIAR(c, expectedIAR, t)
 }
 
@@ -549,6 +679,25 @@ func checkIAR(c *CPU, expValue byte, t *testing.T) {
 func checkIR(c *CPU, expValue byte, t *testing.T) {
 	if c.ir.Value() != expValue {
 		t.Logf("Expected IR to have value of: %X but got %X", expValue, c.ir.Value())
+		t.FailNow()
+	}
+}
+
+func checkFlagsRegister(c *CPU, expectedCarry, expectedIsLarger, expectedIsEqual, expectedIsZero bool, t *testing.T) {
+	if carryFlagSet := c.flagsBus.GetOutputWire(0); carryFlagSet != expectedCarry {
+		t.Logf("Expected is carry out flag to be %v but got %v", expectedCarry, carryFlagSet)
+		t.FailNow()
+	}
+	if isLargerFlagSet := c.flagsBus.GetOutputWire(1); isLargerFlagSet != expectedIsLarger {
+		t.Logf("Expected is larger flag to be %v but got %v", expectedIsLarger, isLargerFlagSet)
+		t.FailNow()
+	}
+	if equalFlagSet := c.flagsBus.GetOutputWire(2); equalFlagSet != expectedIsEqual {
+		t.Logf("Expected equal flag to be %v but got %v", expectedIsEqual, equalFlagSet)
+		t.FailNow()
+	}
+	if zeroFlagSet := c.flagsBus.GetOutputWire(3); zeroFlagSet != expectedIsZero {
+		t.Logf("Expected zero flag to be %v but got %v", expectedIsZero, zeroFlagSet)
 		t.FailNow()
 	}
 }

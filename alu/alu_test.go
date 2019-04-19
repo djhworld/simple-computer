@@ -279,7 +279,8 @@ func testOp(op byte, inputA, inputB int, CarryIn bool, expectedOutput int, expec
 	inputABus := components.NewBus()
 	inputBBus := components.NewBus()
 	outputBus := components.NewBus()
-	alu := NewALU(inputABus, inputBBus, outputBus)
+	flagsBus := components.NewBus()
+	alu := NewALU(inputABus, inputBBus, outputBus, flagsBus)
 	setBusValue(inputABus, inputA)
 	setBusValue(inputBBus, inputB)
 	setOp(alu, op)
@@ -292,23 +293,20 @@ func testOp(op byte, inputA, inputB int, CarryIn bool, expectedOutput int, expec
 		t.FailNow()
 	}
 
-	if alu.IsEqual.Get() != expectedEqual {
-		t.Logf("Expected equal flag to be %v but got %v", expectedEqual, alu.IsEqual.Get())
+	if carryFlagSet := alu.flagsOutputBus.GetOutputWire(0); carryFlagSet != expectedCarry {
+		t.Logf("Expected is carry out flag to be %v but got %v", expectedCarry, carryFlagSet)
 		t.FailNow()
 	}
-
-	if alu.AisLarger.Get() != expectedIsLarger {
-		t.Logf("Expected is larger flag to be %v but got %v", expectedIsLarger, alu.AisLarger.Get())
+	if isLargerFlagSet := alu.flagsOutputBus.GetOutputWire(1); isLargerFlagSet != expectedIsLarger {
+		t.Logf("Expected is larger flag to be %v but got %v", expectedIsLarger, isLargerFlagSet)
 		t.FailNow()
 	}
-
-	if alu.CarryOut.Get() != expectedCarry {
-		t.Logf("Expected is carry out flag to be %v but got %v", expectedCarry, alu.CarryOut.Get())
+	if equalFlagSet := alu.flagsOutputBus.GetOutputWire(2); equalFlagSet != expectedEqual {
+		t.Logf("Expected equal flag to be %v but got %v", expectedEqual, equalFlagSet)
 		t.FailNow()
 	}
-
-	if alu.isZero.GetOutputWire(0) != expectedZero {
-		t.Logf("Expected zero flag to be %v but got %v", expectedEqual, alu.isZero.GetOutputWire(0))
+	if zeroFlagSet := alu.flagsOutputBus.GetOutputWire(3); zeroFlagSet != expectedZero {
+		t.Logf("Expected zero flag to be %v but got %v", expectedZero, zeroFlagSet)
 		t.FailNow()
 	}
 }
