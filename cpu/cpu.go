@@ -104,7 +104,6 @@ import (
 // ----------------------
 // 0x60 CLF
 
-
 // ADDS
 // ----------------------
 // 0x80 = ADD R0, R0
@@ -278,6 +277,27 @@ type CPU struct {
 	iar    components.Register
 	flags  components.Register
 
+	memory  *memory.Memory256
+	alu     *alu.ALU
+	stepper *components.Stepper
+	clock   *components.Clock
+	busOne  components.BusOne
+
+	mainBus       *components.Bus
+	tmpBus        *components.Bus
+	busOneOutput  *components.Bus
+	controlBus    *components.Bus
+	accBus        *components.Bus
+	aluToFlagsBus *components.Bus
+	flagsBus      *components.Bus
+
+	// CONTROL UNIT
+	// inc. gates, wiring, instruction decoding etc
+	step4Gates     [9]circuit.ANDGate
+	step5Gates     [7]circuit.ANDGate
+	step6Gates     [2]components.ANDGate3
+	step6Gates2And circuit.ANDGate
+
 	instrDecoder3x8              InstructionDecoder3x8
 	instructionDecoderEnables2x4 [2]components.Decoder2x4
 	instructionDecoderSet2x4     components.Decoder2x4
@@ -317,29 +337,15 @@ type CPU struct {
 	flagStateGates  [4]circuit.ANDGate
 	flagStateORGate components.ORGate4
 
-	step4Gates     [9]circuit.ANDGate
-	step5Gates     [7]circuit.ANDGate
-	step6Gates     [2]components.ANDGate3
-	step6Gates2And circuit.ANDGate
-
 	aluOpAndGates [3]components.ANDGate3
-
-	busOne        components.BusOne
-	mainBus       *components.Bus
-	tmpBus        *components.Bus
-	busOneOutput  *components.Bus
-	controlBus    *components.Bus
-	accBus        *components.Bus
-	aluToFlagsBus *components.Bus
-	flagsBus      *components.Bus
-	memory        *memory.Memory256
-	alu           *alu.ALU
-	stepper       *components.Stepper
-	clock         *components.Clock
 }
 
 func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c := new(CPU)
+
+	c.stepper = components.NewStepper()
+	c.clock = &components.Clock{}
+	c.memory = memory
 
 	// REGISTERS
 	c.controlBus = components.NewBus()
@@ -377,6 +383,9 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	// ACC
 	c.accBus = components.NewBus()
 	c.acc = *components.NewRegister("ACC", c.accBus, c.mainBus)
+
+	// ALU
+	c.alu = alu.NewALU(c.mainBus, c.busOneOutput, c.accBus, c.aluToFlagsBus)
 
 	// IR Register Output
 	c.irInstructionANDGate = *components.NewANDGate3()
@@ -440,11 +449,6 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	for i := range c.aluOpAndGates {
 		c.aluOpAndGates[i] = *components.NewANDGate3()
 	}
-
-	c.stepper = components.NewStepper()
-	c.clock = &components.Clock{}
-	c.alu = alu.NewALU(c.mainBus, c.busOneOutput, c.accBus, c.aluToFlagsBus)
-	c.memory = memory
 
 	return c
 }
