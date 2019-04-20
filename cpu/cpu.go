@@ -570,7 +570,7 @@ func (c *CPU) updateStates() {
 }
 
 func (c *CPU) updateALU() {
-	//update ALU operation base on instruction register
+	//update ALU operation based on instruction register
 	c.aluOpAndGates[2].Update(c.ir.Bit(1), c.ir.Bit(0), c.stepper.GetOutputWire(4))
 	c.aluOpAndGates[1].Update(c.ir.Bit(2), c.ir.Bit(0), c.stepper.GetOutputWire(4))
 	c.aluOpAndGates[0].Update(c.ir.Bit(3), c.ir.Bit(0), c.stepper.GetOutputWire(4))
@@ -689,7 +689,6 @@ func (c *CPU) runEnableGeneralPurposeRegisters(state bool) {
 	updateEnableStatus(&c.gpReg1, c.gpRegEnableORGates[1].Output())
 
 	// R2
-	// this register should be enabled at some point but isn't....
 	c.gpRegEnableANDGates[2].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables2x4[0].GetOutputWire(2))
 	c.gpRegEnableANDGates[6].Update(state, c.registerAEnable.Get(), c.instructionDecoderEnables2x4[1].GetOutputWire(2))
 	c.gpRegEnableORGates[2].Update(c.gpRegEnableANDGates[6].Output(), c.gpRegEnableANDGates[2].Output())
@@ -846,19 +845,5 @@ func updateSetStatus(component Settable, state bool) {
 		component.Set()
 	} else {
 		component.Unset()
-	}
-}
-
-func setBus(b *components.Bus, value byte) {
-	var x = 0
-	for i := 7; i >= 0; i-- {
-		r := (value & (1 << byte(x)))
-		if r != 0 {
-			b.SetInputWire(i, true)
-		} else {
-			b.SetInputWire(i, false)
-		}
-
-		x++
 	}
 }

@@ -906,3 +906,17 @@ func setRegisters(c *CPU, values [4]byte) {
 		setRegister(c, i, v)
 	}
 }
+
+func setBus(b *components.Bus, value byte) {
+	var x = 0
+	for i := 7; i >= 0; i-- {
+		r := (value & (1 << byte(x)))
+		if r != 0 {
+			b.SetInputWire(i, true)
+		} else {
+			b.SetInputWire(i, false)
+		}
+
+		x++
+	}
+}
