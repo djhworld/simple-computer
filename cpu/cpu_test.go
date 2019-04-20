@@ -920,3 +920,79 @@ func setBus(b *components.Bus, value byte) {
 		x++
 	}
 }
+
+func TestSubtract(t *testing.T) {
+	testSubtract(0, 0, t)
+	testSubtract(1, 0, t)
+	testSubtract(37, 21, t)
+	testSubtract(0xFF, 0xFF, t)
+	testSubtract(10, 3, t)
+	testSubtract(100, 99, t)
+}
+
+func testSubtract(inputA, inputB byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setRegisters(c, [4]byte{inputA, inputB, 1, 0})
+	setMemoryLocation(c, 0x00, 0xB5) // NOT
+	setMemoryLocation(c, 0x01, 0x89) // ADD R2, R1
+	setMemoryLocation(c, 0x02, 0x81) // ADD R0, R1
+
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
+
+	checkRegisters(c, inputA, inputA-inputB, 1, 0, t)
+}
+
+func TestMultiply(t *testing.T) {
+	testMultiply(0, 0, t)
+	testMultiply(1, 1, t)
+	testMultiply(1, 2, t)
+	testMultiply(2, 1, t)
+	testMultiply(5, 5, t)
+	testMultiply(8, 12, t)
+	testMultiply(19, 13, t)
+}
+
+func testMultiply(inputA, inputB byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 50, 0x23) // DATA R3
+	setMemoryLocation(c, 51, 0x01) // .. 1
+	setMemoryLocation(c, 52, 0xEA) // XOR R2, R2
+	setMemoryLocation(c, 53, 0x60) // CLF
+	setMemoryLocation(c, 54, 0x90) // SHR R0
+	setMemoryLocation(c, 55, 0x58) // JC
+	setMemoryLocation(c, 56, 59)   // ...addr 59
+	setMemoryLocation(c, 57, 0x40) // JMP
+	setMemoryLocation(c, 58, 61)   // ...addr 61
+	setMemoryLocation(c, 59, 0x60) // CLF
+	setMemoryLocation(c, 60, 0x86) // ADD R1, R2
+	setMemoryLocation(c, 61, 0x60) // CLF
+	setMemoryLocation(c, 62, 0xA5) // SHL R1
+	setMemoryLocation(c, 63, 0xAF) // SHL R3
+	setMemoryLocation(c, 64, 0x58) // JC
+	setMemoryLocation(c, 65, 68)   // ...addr 68
+	setMemoryLocation(c, 66, 0x40) // JMP
+	setMemoryLocation(c, 67, 53)   // ...addr 53
+
+	setRegisters(c, [4]byte{inputA, inputB, 0, 0})
+
+	setIAR(c, 50)
+
+	for {
+		doFetchDecodeExecute(c)
+		if c.iar.Value() >= 68 {
+			break
+		}
+	}
+
+	checkRegisters(c, 0, 0, inputA*inputB, 0, t)
+}
