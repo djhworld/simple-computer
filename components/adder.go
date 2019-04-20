@@ -42,7 +42,6 @@ func (a *Adder) Update(carryIn bool) {
 
 	awire := 15
 	bwire := 7
-	//	for i, _ := range a.adds {
 	for i := len(a.adds) - 1; i >= 0; i-- {
 		aval := a.inputs[awire].Get()
 		bval := a.inputs[bwire].Get()
