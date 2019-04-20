@@ -100,6 +100,11 @@ import (
 // 0x5E = JMPCAE <value>
 // 0x5F = JMPCAEZ <value>
 
+// CLF (CLEAR FLAGS)
+// ----------------------
+// 0x60 CLF
+
+
 // ADDS
 // ----------------------
 // 0x80 = ADD R0, R0
@@ -495,7 +500,6 @@ func (c *CPU) step(clockState bool) {
 	c.runStep5Gates()
 	c.runStep6Gates()
 
-	//TODO this is problematic
 	c.runEnable(clockState)
 	c.updateStates()
 	if clockState {
@@ -508,6 +512,15 @@ func (c *CPU) step(clockState bool) {
 	if clockState {
 		c.runSet(false)
 		c.updateStates()
+	}
+
+	// main bus should not have residual data!
+	c.clearMainBus()
+}
+
+func (c *CPU) clearMainBus() {
+	for i := 0; i < 8; i++ {
+		c.mainBus.SetInputWire(i, false)
 	}
 }
 

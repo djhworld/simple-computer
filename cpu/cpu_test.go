@@ -566,6 +566,37 @@ func testJMPConditional(jmpConditionInstr, destination, initialInstr byte, input
 	checkIAR(c, expectedIAR, t)
 }
 
+func TestCLF(t *testing.T) {
+	// carry + zero + greater
+	testCLF(0x81, [4]byte{0xFF, 0x01, 0x00, 0x00}, t)
+
+	// equal flag
+	testCLF(0x81, [4]byte{0x01, 0x01, 0x00, 0x00}, t)
+
+	// all flags should be false anyway
+	testCLF(0x81, [4]byte{0x01, 0x02, 0x00, 0x00}, t)
+}
+
+func testCLF(initialInstruction byte, initialRegisters [4]byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	var insAddr byte = 0x00
+
+	setMemoryLocation(c, insAddr, initialInstruction)
+	setMemoryLocation(c, insAddr+1, 0x60)
+
+	setIAR(c, insAddr)
+
+	setRegisters(c, initialRegisters)
+
+	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
+
+	checkFlagsRegister(c, false, false, false, false, t)
+}
+
 func TestALUAdd(t *testing.T) {
 	var inputs [4]byte = [4]byte{0x02, 0x03, 0x04, 0x05}
 
