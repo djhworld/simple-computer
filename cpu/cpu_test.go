@@ -996,3 +996,142 @@ func testMultiply(inputA, inputB byte, t *testing.T) {
 
 	checkRegisters(c, 0, 0, inputA*inputB, 0, t)
 }
+
+func TestIOInputInstruction(t *testing.T) {
+	// IN Data, RB
+	zeros := [4]byte{0, 0, 0, 0}
+	testIOInputInstruction(0x70, zeros, [4]byte{0xDA, 0x00, 0x00, 0x00}, t)
+	testIOInputInstruction(0x71, zeros, [4]byte{0x00, 0xDA, 0x00, 0x00}, t)
+	testIOInputInstruction(0x72, zeros, [4]byte{0x00, 0x00, 0xDA, 0x00}, t)
+	testIOInputInstruction(0x73, zeros, [4]byte{0x00, 0x00, 0x00, 0xDA}, t)
+	// IN Addr, RB
+	testIOInputInstruction(0x74, zeros, [4]byte{0xAD, 0x00, 0x00, 0x00}, t)
+	testIOInputInstruction(0x75, zeros, [4]byte{0x00, 0xAD, 0x00, 0x00}, t)
+	testIOInputInstruction(0x76, zeros, [4]byte{0x00, 0x00, 0xAD, 0x00}, t)
+	testIOInputInstruction(0x77, zeros, [4]byte{0x00, 0x00, 0x00, 0xAD}, t)
+}
+
+func testIOInputInstruction(instruction byte, inputRegisters, expectedRegisters [4]byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+	c.ConnectPeripheral(NewDumbPeripheral())
+
+	setMemoryLocation(c, 0x00, instruction)
+	setRegisters(c, inputRegisters)
+
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkRegisters(c, expectedRegisters[0], expectedRegisters[1], expectedRegisters[2], expectedRegisters[3], t)
+}
+
+// should put a value in the peripheral register, and set the address/data flag on the peripheral
+func TestIOOutputInstruction(t *testing.T) {
+	// OUT Data, RB
+	testIOOutputInstruction(0x78, [4]byte{0xDD, 0x08, 0x07, 0x06}, 0xDD, true, false, t)
+	testIOOutputInstruction(0x79, [4]byte{0x09, 0xDD, 0x07, 0x06}, 0xDD, true, false, t)
+	testIOOutputInstruction(0x7A, [4]byte{0x09, 0x08, 0xDD, 0x06}, 0xDD, true, false, t)
+	testIOOutputInstruction(0x7B, [4]byte{0x09, 0x08, 0x07, 0xDD}, 0xDD, true, false, t)
+
+	// OUT Addr, RB
+	testIOOutputInstruction(0x7C, [4]byte{0xAA, 0x08, 0x07, 0x06}, 0xAA, false, true, t)
+	testIOOutputInstruction(0x7D, [4]byte{0x09, 0xAA, 0x07, 0x06}, 0xAA, false, true, t)
+	testIOOutputInstruction(0x7E, [4]byte{0x09, 0x08, 0xAA, 0x06}, 0xAA, false, true, t)
+	testIOOutputInstruction(0x7F, [4]byte{0x09, 0x08, 0x07, 0xAA}, 0xAA, false, true, t)
+}
+
+func testIOOutputInstruction(instruction byte, inputRegisters [4]byte, expectedPeripheralValue byte, expectedDataMode, expectedAddressMode bool, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+	peripheral := NewDumbPeripheral()
+	c.ConnectPeripheral(peripheral)
+
+	setMemoryLocation(c, 0x00, instruction)
+	setRegisters(c, inputRegisters)
+
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	if peripheral.value.Value() != expectedPeripheralValue {
+		t.FailNow()
+	}
+
+	if peripheral.outputDataMode != expectedDataMode {
+		t.FailNow()
+	}
+
+	if peripheral.outputAddressMode != expectedAddressMode {
+		t.FailNow()
+	}
+}
+
+// Dumb peripheral that just contains a register
+// In 'ENABLE' state:
+//     emits the values 0xDA for data mode, and 0xAD for address mode
+// In SET state:
+//    sets the flags outputDataMode and outputAddressMode based on the data/address value on the bus
+type DumbPeripheral struct {
+	ioBus   *components.IOBus
+	mainBus *components.Bus
+
+	value             components.Register
+	outputDataMode    bool
+	outputAddressMode bool
+}
+
+func NewDumbPeripheral() *DumbPeripheral {
+	p := new(DumbPeripheral)
+	return p
+}
+
+func (p *DumbPeripheral) Connect(ioBus *components.IOBus, mainBus *components.Bus) {
+	p.ioBus = ioBus
+	p.mainBus = mainBus
+	p.value = *components.NewRegister("P", p.mainBus, p.mainBus)
+
+}
+
+func (p *DumbPeripheral) Update() {
+	p.updateEnabled()
+	p.value.Update()
+	p.updateSet()
+	p.value.Update()
+}
+
+func (p *DumbPeripheral) refreshValue(addressValue, dataValue byte) {
+	p.value.Set()
+	p.value.Update()
+
+	if p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) {
+		//address mode
+		setBus(p.mainBus, addressValue)
+	} else {
+		setBus(p.mainBus, dataValue)
+	}
+	p.value.Update()
+	p.value.Unset()
+	p.value.Update()
+}
+
+func (p *DumbPeripheral) updateEnabled() {
+	if p.ioBus.GetOutputWire(components.CLOCK_ENABLE) {
+		p.refreshValue(0xAD, 0xDA)
+		p.value.Enable()
+	} else {
+		p.value.Disable()
+	}
+}
+
+func (p *DumbPeripheral) updateSet() {
+	if p.ioBus.GetOutputWire(components.CLOCK_SET) {
+		p.outputDataMode = (p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) == false)
+		p.outputAddressMode = (p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) == true)
+		p.value.Set()
+	} else {
+		p.value.Unset()
+	}
+}

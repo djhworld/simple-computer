@@ -104,6 +104,28 @@ import (
 // ----------------------
 // 0x60 CLF
 
+// IN
+// ----------------------
+// 0x70 = IN Data, R0
+// 0x71 = IN Data, R1
+// 0x72 = IN Data, R2
+// 0x73 = IN Data, R3
+// 0x74 = IN Addr, R0
+// 0x75 = IN Addr, R1
+// 0x76 = IN Addr, R2
+// 0x77 = IN Addr, R3
+
+// OUT
+// ----------------------
+// 0x78 = OUT Data, R0
+// 0x79 = OUT Data, R1
+// 0x7A = OUT Data, R2
+// 0x7B = OUT Data, R3
+// 0x7C = OUT Addr, R0
+// 0x7D = OUT Addr, R1
+// 0x7E = OUT Addr, R2
+// 0x7F = OUT Addr, R3
+
 // ADDS
 // ----------------------
 // 0x80 = ADD R0, R0
@@ -290,11 +312,14 @@ type CPU struct {
 	accBus        *components.Bus
 	aluToFlagsBus *components.Bus
 	flagsBus      *components.Bus
+	ioBus         *components.IOBus
 
 	// CONTROL UNIT
 	// inc. gates, wiring, instruction decoding etc
-	step4Gates     [9]circuit.ANDGate
-	step5Gates     [7]circuit.ANDGate
+	step4Gates     [8]circuit.ANDGate
+	step4Gate3And  components.ANDGate3
+	step5Gates     [6]circuit.ANDGate
+	step5Gate3And  components.ANDGate3
 	step6Gates     [2]components.ANDGate3
 	step6Gates2And circuit.ANDGate
 
@@ -305,6 +330,7 @@ type CPU struct {
 	irInstructionANDGate components.ANDGate3
 	irInstructionNOTGate circuit.NOTGate
 
+	ioBusEnableGate       circuit.ANDGate
 	registerAEnableORGate components.ORGate3
 	registerBEnableORGate components.ORGate4
 	registerBSetORGate    components.ORGate4
@@ -321,6 +347,8 @@ type CPU struct {
 	gpRegEnableORGates    [4]circuit.ORGate
 	gpRegSetANDGates      [4]components.ANDGate3
 
+	ioBusSetGate    circuit.ANDGate
+	irBit4NOTGate   circuit.NOTGate
 	irSetANDGate    circuit.ANDGate
 	marSetORGate    components.ORGate6
 	marSetANDGate   circuit.ANDGate
@@ -338,6 +366,8 @@ type CPU struct {
 	flagStateORGate components.ORGate4
 
 	aluOpAndGates [3]components.ANDGate3
+
+	peripherals []Peripheral
 }
 
 func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
@@ -390,6 +420,7 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	// IR Register Output
 	c.irInstructionANDGate = *components.NewANDGate3()
 	c.irInstructionNOTGate = *circuit.NewNOTGate()
+	c.irBit4NOTGate = *circuit.NewNOTGate()
 
 	// Enables
 	c.registerAEnableORGate = *components.NewORGate3()
@@ -419,10 +450,12 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	for i := range c.step4Gates {
 		c.step4Gates[i] = *circuit.NewANDGate()
 	}
+	c.step4Gate3And = *components.NewANDGate3()
 
 	for i := range c.step5Gates {
 		c.step5Gates[i] = *circuit.NewANDGate()
 	}
+	c.step5Gate3And = *components.NewANDGate3()
 
 	for i := range c.step6Gates {
 		c.step6Gates[i] = *components.NewANDGate3()
@@ -450,7 +483,18 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 		c.aluOpAndGates[i] = *components.NewANDGate3()
 	}
 
+	c.ioBus = components.NewIOBus()
+	c.ioBusEnableGate = *circuit.NewANDGate()
+	c.ioBusSetGate = *circuit.NewANDGate()
+
+	c.peripherals = make([]Peripheral, 0)
+
 	return c
+}
+
+func (c *CPU) ConnectPeripheral(p Peripheral) {
+	p.Connect(c.ioBus, c.mainBus)
+	c.peripherals = append(c.peripherals, p)
 }
 
 func (c *CPU) Run() {
@@ -470,7 +514,7 @@ func (c *CPU) Run() {
 			}
 			c.step(clockState)
 
-			if r%3000 == 0 {
+			if r%5000 == 0 {
 				fmt.Println("CPU Speed:", counter.Rate(), "hz")
 			}
 
@@ -567,6 +611,18 @@ func (c *CPU) updateStates() {
 
 	c.updateInstructionDecoder3x8()
 	c.updateALU()
+	c.updateIOBus()
+	c.updatePeripherals()
+}
+
+func (c *CPU) updatePeripherals() {
+	for _, p := range c.peripherals {
+		p.Update()
+	}
+}
+
+func (c *CPU) updateIOBus() {
+	c.ioBus.Update(c.ir.Bit(4), c.ir.Bit(5))
 }
 
 func (c *CPU) updateALU() {
@@ -596,10 +652,13 @@ func (c *CPU) runStep4Gates() {
 	c.step4Gates[0].Update(c.stepper.GetOutputWire(3), c.ir.Bit(0))
 
 	gate := 1
-	for selector := 0; selector < 8; selector++ {
+	for selector := 0; selector < 7; selector++ {
 		c.step4Gates[gate].Update(c.stepper.GetOutputWire(3), c.instrDecoder3x8.selectorGates[selector].Output())
 		gate++
 	}
+
+	c.step4Gate3And.Update(c.stepper.GetOutputWire(3), c.instrDecoder3x8.selectorGates[7].Output(), c.ir.Bit(4))
+	c.irBit4NOTGate.Update(c.ir.Bit(4))
 }
 
 func (c *CPU) runStep5Gates() {
@@ -611,8 +670,7 @@ func (c *CPU) runStep5Gates() {
 	c.step5Gates[4].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[4].Output())
 	c.step5Gates[5].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[5].Output())
 
-	//TODO - this has a not gate attached to it
-	//	c.step5Gates[6].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[5].Output())
+	c.step5Gate3And.Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[7].Output(), c.irBit4NOTGate.Output())
 }
 
 func (c *CPU) runStep6Gates() {
@@ -622,6 +680,7 @@ func (c *CPU) runStep6Gates() {
 }
 
 func (c *CPU) runEnable(state bool) {
+	c.runEnableOnIO(state)
 	c.runEnableOnIAR(state)
 	c.runEnableOnBusOne(state)
 	c.runEnableOnACC(state)
@@ -631,8 +690,13 @@ func (c *CPU) runEnable(state bool) {
 	c.runEnableGeneralPurposeRegisters(state)
 }
 
+func (c *CPU) runEnableOnIO(state bool) {
+	c.ioBusEnableGate.Update(state, c.step5Gate3And.Output())
+	updateEnableStatus(c.ioBus, c.ioBusEnableGate.Output())
+}
+
 func (c *CPU) runEnableOnRegisterB() {
-	c.registerBEnableORGate.Update(c.step4Gates[0].Output(), c.step5Gates[2].Output(), c.step4Gates[4].Output(), c.step4Gates[8].Output())
+	c.registerBEnableORGate.Update(c.step4Gates[0].Output(), c.step5Gates[2].Output(), c.step4Gates[4].Output(), c.step4Gate3And.Output())
 	c.registerBEnable.Update(c.registerBEnableORGate.Output())
 }
 
@@ -707,6 +771,7 @@ func (c *CPU) runSet(state bool) {
 
 	c.refreshFlagStateGates()
 
+	c.runSetOnIO(state)
 	c.runSetOnMAR(state)
 	c.runSetOnIAR(state)
 	c.runSetOnIR(state)
@@ -734,6 +799,11 @@ func (c *CPU) refreshFlagStateGates() {
 		c.flagStateGates[2].Output(),
 		c.flagStateGates[3].Output(),
 	)
+}
+
+func (c *CPU) runSetOnIO(state bool) {
+	c.ioBusSetGate.Update(state, c.step4Gate3And.Output())
+	updateSetStatus(c.ioBus, c.ioBusSetGate.Output())
 }
 
 func (c *CPU) runSetOnMAR(state bool) {
@@ -802,7 +872,7 @@ func (c *CPU) runSetOnRegisterB() {
 		c.step5Gates[1].Output(),
 		c.step6Gates[0].Output(),
 		c.step5Gates[3].Output(),
-		c.step5Gates[6].Output(),
+		c.step5Gate3And.Output(),
 	)
 
 	c.registerBSet.Update(c.registerBSetORGate.Output())
