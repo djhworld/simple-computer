@@ -27,11 +27,12 @@ type ALU struct {
 	inputA [8]circuit.Wire
 	inputB [8]circuit.Wire
 
-	Op        [3]circuit.Wire
-	CarryIn   circuit.Wire
-	CarryOut  circuit.Wire
-	AisLarger circuit.Wire
-	IsEqual   circuit.Wire
+	Op      [3]circuit.Wire
+	CarryIn circuit.Wire
+
+	carryOut  circuit.Wire
+	aIsLarger circuit.Wire
+	isEqual   circuit.Wire
 
 	opDecoder components.Decoder3x8
 
@@ -87,8 +88,8 @@ func (a *ALU) updateComparator() {
 	// comparator is not wired to an enabler and runs all the time
 	a.setWireOnComponent(&a.comparator)
 	a.comparator.Update()
-	a.AisLarger.Update(a.comparator.Larger())
-	a.IsEqual.Update(a.comparator.Equal())
+	a.aIsLarger.Update(a.comparator.Larger())
+	a.isEqual.Update(a.comparator.Equal())
 }
 
 func (a *ALU) updateXorer() {
@@ -167,6 +168,7 @@ func (a *ALU) String() string {
 
 	var inputA byte
 	var inputB byte
+	var output byte
 	var x int = 0
 	for i := 7; i >= 0; i-- {
 		if a.inputA[i].Get() {
@@ -180,16 +182,22 @@ func (a *ALU) String() string {
 		} else {
 			inputB = inputB & ^(1 << byte(x))
 		}
+
+		if a.output[i].Get() {
+			output = output | (1 << byte(x))
+		} else {
+			output = output & ^(1 << byte(x))
+		}
 		x++
 	}
-	return fmt.Sprintf("ALU OP: %s, A: 0x%X, B: 0x%X, eq: %v, larger: %v, zero: %v", s, inputA, inputB, a.IsEqual.Get(), a.AisLarger.Get(), a.isZero.GetOutputWire(0))
+	return fmt.Sprintf("ALU OP: %s, A: 0x%X, B: 0x%X, OUT: 0x%X, carryin: %v, carryout: %v, larger: %v, eq: %v, zero: %v", s, inputA, inputB, output, a.CarryIn.Get(), a.flagsOutputBus.GetOutputWire(0), a.flagsOutputBus.GetOutputWire(1), a.flagsOutputBus.GetOutputWire(2), a.flagsOutputBus.GetOutputWire(3))
 }
 
 func (a *ALU) resetOutputs() {
-	a.CarryOut.Update(false)
+	a.carryOut.Update(false)
 	a.isZero.Reset()
-	a.AisLarger.Update(false)
-	a.IsEqual.Update(false)
+	a.aIsLarger.Update(false)
+	a.isEqual.Update(false)
 	for i := 0; i < 8; i++ {
 		a.output[i].Update(false)
 		if i < 7 {
@@ -227,14 +235,14 @@ func (a *ALU) Update() {
 
 		switch enabler {
 		case ADD:
-			a.andGates[0].Update(a.adder.Carry(), true)
-			a.CarryOut.Update(a.andGates[0].Output())
+			a.andGates[0].Update(a.adder.Carry(), a.opDecoder.GetOutputWire(ADD))
+			a.carryOut.Update(a.andGates[0].Output())
 		case SHR:
-			a.andGates[1].Update(a.rightShifer.ShiftOut(), true)
-			a.CarryOut.Update(a.andGates[1].Output())
+			a.andGates[1].Update(a.rightShifer.ShiftOut(), a.opDecoder.GetOutputWire(SHR))
+			a.carryOut.Update(a.andGates[1].Output())
 		case SHL:
-			a.andGates[2].Update(a.leftShifer.ShiftOut(), true)
-			a.CarryOut.Update(a.andGates[2].Output())
+			a.andGates[2].Update(a.leftShifer.ShiftOut(), a.opDecoder.GetOutputWire(SHL))
+			a.carryOut.Update(a.andGates[2].Output())
 		}
 
 		for i := 0; i < 8; i++ {
@@ -249,9 +257,9 @@ func (a *ALU) Update() {
 		a.outputBus.SetInputWire(i, a.output[i].Get())
 	}
 
-	a.flagsOutputBus.SetInputWire(0, a.CarryOut.Get())
-	a.flagsOutputBus.SetInputWire(1, a.AisLarger.Get())
-	a.flagsOutputBus.SetInputWire(2, a.IsEqual.Get())
+	a.flagsOutputBus.SetInputWire(0, a.carryOut.Get())
+	a.flagsOutputBus.SetInputWire(1, a.aIsLarger.Get())
+	a.flagsOutputBus.SetInputWire(2, a.isEqual.Get())
 	a.flagsOutputBus.SetInputWire(3, a.isZero.GetOutputWire(0))
 	a.flagsOutputBus.SetInputWire(4, false)
 	a.flagsOutputBus.SetInputWire(5, false)

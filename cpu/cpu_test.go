@@ -619,9 +619,54 @@ func TestALUAdd(t *testing.T) {
 	testInstruction(0x8D, inputs, [4]byte{inputs[0], inputs[1] + inputs[3], inputs[2], inputs[3]}, t)
 	testInstruction(0x8E, inputs, [4]byte{inputs[0], inputs[1], inputs[2] + inputs[3], inputs[3]}, t)
 	testInstruction(0x8F, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[3]}, t)
+}
 
-	// TODO work with carry flags etc?
+func TestALUAddWithCarry(t *testing.T) {
+	testALUAddWithCarry(
+		0x80,
+		[4]byte{0xFE, 0x00, 0x00, 0x00},
+		[4]byte{0x01, 0x00, 0x00, 0x00},
+		t,
+	)
 
+	testALUAddWithCarry(
+		0x81,
+		[4]byte{0xFE, 0x05, 0x00, 0x00},
+		[4]byte{0x00, 0x01, 0x00, 0x00},
+		t,
+	)
+
+	testALUAddWithCarry(
+		0x82,
+		[4]byte{0xFE, 0x00, 0x05, 0x00},
+		[4]byte{0x00, 0x00, 0x01, 0x00},
+		t,
+	)
+
+	testALUAddWithCarry(
+		0x83,
+		[4]byte{0xFE, 0x00, 0x00, 0x05},
+		[4]byte{0x00, 0x00, 0x00, 0x01},
+		t,
+	)
+}
+
+func testALUAddWithCarry(instruction byte, inputRegisters, expectedOutputRegisters [4]byte, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, instruction)
+	setMemoryLocation(c, 0x01, instruction)
+
+	setIAR(c, 0x00)
+
+	setRegisters(c, inputRegisters)
+	doFetchDecodeExecute(c)
+	setRegisters(c, [4]byte{0x00, 0x00, 0x00, 0x00}) // zeros so that we can see the carry flag cause a change
+	doFetchDecodeExecute(c)
+
+	checkRegisters(c, expectedOutputRegisters[0], expectedOutputRegisters[1], expectedOutputRegisters[2], expectedOutputRegisters[3], t)
 }
 
 func TestALUNOT(t *testing.T) {
@@ -707,13 +752,41 @@ func TestALUXOR(t *testing.T) {
 func TestCMP(t *testing.T) {
 	var inputs [4]byte = [4]byte{0x92, 0x91, 0x45, 0xAF}
 
-	// outputs should remain the same
-	var i byte
-	for i = 0; i <= 0x0F; i++ {
-		testInstruction(0xF0+i, inputs, inputs, t)
+	var instruction byte = 0xF0
+	for a := 0; a < 4; a++ {
+		for b := 0; b < 4; b++ {
+			testCMP(instruction, inputs, inputs, a, b, t)
+			instruction++
+		}
 	}
 
-	//TODO work with carry flags etc?
+	var zeroes [4]byte = [4]byte{0x00, 0x00, 0x00, 0x00}
+	instruction = 0xF0
+	for a := 0; a < 4; a++ {
+		for b := 0; b < 4; b++ {
+			testCMP(instruction, zeroes, zeroes, a, b, t)
+			instruction++
+		}
+	}
+}
+
+func testCMP(instruction byte, inputRegisters [4]byte, expectedOutputRegisters [4]byte, compareA, compareB int, t *testing.T) {
+	b := components.NewBus()
+	m := memory.NewMemory256(b)
+	c := NewCPU(b, m)
+
+	setMemoryLocation(c, 0x00, instruction)
+
+	for i, r := range inputRegisters {
+		setRegister(c, i, r)
+	}
+
+	setIAR(c, 0x00)
+
+	doFetchDecodeExecute(c)
+
+	checkRegisters(c, expectedOutputRegisters[0], expectedOutputRegisters[1], expectedOutputRegisters[2], expectedOutputRegisters[3], t)
+	checkFlagsRegister(c, false, inputRegisters[compareA] > inputRegisters[compareB], inputRegisters[compareA] == inputRegisters[compareB], false, t)
 }
 
 func testInstruction(instruction byte, inputRegisters [4]byte, expectedOutputRegisters [4]byte, t *testing.T) {
@@ -878,27 +951,33 @@ func checkFlagsRegister(c *CPU, expectedCarry, expectedIsLarger, expectedIsEqual
 	}
 }
 
+func checkRegister(c *CPU, register int, expectedValue byte, t *testing.T) {
+	var regValue byte
+	switch register {
+	case 0:
+		regValue = c.gpReg0.Value()
+	case 1:
+		regValue = c.gpReg1.Value()
+	case 2:
+		regValue = c.gpReg2.Value()
+	case 3:
+		regValue = c.gpReg3.Value()
+	default:
+		t.Logf("Unknown register %d", register)
+		t.FailNow()
+	}
+
+	if regValue != expectedValue {
+		t.Logf("Expected register %d to have value of: %X but got %X", register, expectedValue, regValue)
+		t.FailNow()
+	}
+}
+
 func checkRegisters(c *CPU, expReg0, expReg1, expReg2, expReg3 byte, t *testing.T) {
-	if c.gpReg0.Value() != expReg0 {
-		t.Logf("Expected register 0 to have value of: %X but got %X", expReg0, c.gpReg0.Value())
-		t.FailNow()
-	}
-
-	if c.gpReg1.Value() != expReg1 {
-		t.Logf("Expected register 1 to have value of: %X but got %X", expReg1, c.gpReg1.Value())
-		t.FailNow()
-	}
-
-	if c.gpReg2.Value() != expReg2 {
-		t.Logf("Expected register 2 to have value of: %X but got %X", expReg2, c.gpReg2.Value())
-		t.FailNow()
-	}
-
-	if c.gpReg3.Value() != expReg3 {
-		t.Logf("Expected register 3 to have value of: %X but got %X", expReg3, c.gpReg3.Value())
-		t.FailNow()
-	}
-
+	checkRegister(c, 0, expReg0, t)
+	checkRegister(c, 1, expReg1, t)
+	checkRegister(c, 2, expReg2, t)
+	checkRegister(c, 3, expReg3, t)
 }
 
 func setRegisters(c *CPU, values [4]byte) {
@@ -938,15 +1017,17 @@ func testSubtract(inputA, inputB byte, t *testing.T) {
 	setRegisters(c, [4]byte{inputA, inputB, 1, 0})
 	setMemoryLocation(c, 0x00, 0xB5) // NOT
 	setMemoryLocation(c, 0x01, 0x89) // ADD R2, R1
-	setMemoryLocation(c, 0x02, 0x81) // ADD R0, R1
+	setMemoryLocation(c, 0x02, 0x60) // CLF
+	setMemoryLocation(c, 0x03, 0x81) // ADD R0, R1
 
 	setIAR(c, 0x00)
 
 	doFetchDecodeExecute(c)
 	doFetchDecodeExecute(c)
 	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
 
-	checkRegisters(c, inputA, inputA-inputB, 1, 0, t)
+	checkRegister(c, 1, inputA-inputB, t)
 }
 
 func TestMultiply(t *testing.T) {
@@ -994,7 +1075,7 @@ func testMultiply(inputA, inputB byte, t *testing.T) {
 		}
 	}
 
-	checkRegisters(c, 0, 0, inputA*inputB, 0, t)
+	checkRegister(c, 2, inputA*inputB, t)
 }
 
 func TestIOInputInstruction(t *testing.T) {

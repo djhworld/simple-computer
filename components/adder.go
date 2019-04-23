@@ -1,6 +1,8 @@
 package components
 
-import "github.com/djhworld/simple-computer/circuit"
+import (
+	"github.com/djhworld/simple-computer/circuit"
+)
 
 type Adder struct {
 	inputs   [16]circuit.Wire

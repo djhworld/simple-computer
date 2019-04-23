@@ -257,6 +257,13 @@ import (
 // 0xFE = CMP R3, R2
 // 0xFF = CMP R3, R3
 
+const (
+	FLAGS_BUS_CARRY    = 0
+	FLAGS_BUS_A_LARGER = 1
+	FLAGS_BUS_EQUAL    = 2
+	FLAGS_BUS_ZERO     = 3
+)
+
 type Enableable interface {
 	Enable()
 	Disable()
@@ -367,6 +374,9 @@ type CPU struct {
 
 	aluOpAndGates [3]components.ANDGate3
 
+	carryTemp    components.Bit
+	carryANDGate circuit.ANDGate
+
 	peripherals []Peripheral
 }
 
@@ -399,12 +409,20 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.aluToFlagsBus = components.NewBus()
 	c.flagsBus = components.NewBus()
 	c.flags = *components.NewRegister("FLAGS", c.aluToFlagsBus, c.flagsBus)
-	c.flags.Enable()
+	// flags register is always enabled, and we initialise it with value 0
+	updateEnableStatus(&c.flags, true)
+	updateSetStatus(&c.flags, true)
+	runUpdateOn(&c.flags)
+	updateSetStatus(&c.flags, false)
 
 	// TMP
 	c.tmpBus = components.NewBus()
 	c.tmp = *components.NewRegister("TMP", c.mainBus, c.tmpBus)
-	c.tmp.Enable()
+	// tmp register is always enabled, and we initialise it with value 0
+	updateEnableStatus(&c.tmp, true)
+	updateSetStatus(&c.tmp, true)
+	runUpdateOn(&c.tmp)
+	updateSetStatus(&c.tmp, false)
 
 	// BUS 1
 	c.busOneOutput = components.NewBus()
@@ -446,6 +464,9 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.tmpSetANDGate = *circuit.NewANDGate()
 	c.flagsSetORGate = *circuit.NewORGate()
 	c.flagsSetANDGate = *circuit.NewANDGate()
+
+	c.carryTemp = *components.NewBit()
+	c.carryANDGate = *circuit.NewANDGate()
 
 	for i := range c.step4Gates {
 		c.step4Gates[i] = *circuit.NewANDGate()
@@ -594,6 +615,9 @@ func (c *CPU) updateStates() {
 	// BUS1
 	runUpdateOn(&c.busOne)
 
+	// ALU
+	c.updateALU()
+
 	// ACC
 	runUpdateOn(&c.acc)
 
@@ -610,7 +634,6 @@ func (c *CPU) updateStates() {
 	runUpdateOn(&c.gpReg3)
 
 	c.updateInstructionDecoder3x8()
-	c.updateALU()
 	c.updateIOBus()
 	c.updatePeripherals()
 }
@@ -634,6 +657,8 @@ func (c *CPU) updateALU() {
 	c.alu.Op[2].Update(c.aluOpAndGates[2].Output())
 	c.alu.Op[1].Update(c.aluOpAndGates[1].Output())
 	c.alu.Op[0].Update(c.aluOpAndGates[0].Output())
+
+	c.alu.CarryIn.Update(c.carryANDGate.Output())
 	c.alu.Update()
 
 }
@@ -785,13 +810,13 @@ func (c *CPU) runSet(state bool) {
 
 func (c *CPU) refreshFlagStateGates() {
 	// C
-	c.flagStateGates[0].Update(c.ir.Bit(4), c.flagsBus.GetOutputWire(0))
+	c.flagStateGates[0].Update(c.ir.Bit(4), c.flagsBus.GetOutputWire(FLAGS_BUS_CARRY))
 	// A
-	c.flagStateGates[1].Update(c.ir.Bit(5), c.flagsBus.GetOutputWire(1))
+	c.flagStateGates[1].Update(c.ir.Bit(5), c.flagsBus.GetOutputWire(FLAGS_BUS_A_LARGER))
 	// E
-	c.flagStateGates[2].Update(c.ir.Bit(6), c.flagsBus.GetOutputWire(2))
+	c.flagStateGates[2].Update(c.ir.Bit(6), c.flagsBus.GetOutputWire(FLAGS_BUS_EQUAL))
 	// Z
-	c.flagStateGates[3].Update(c.ir.Bit(7), c.flagsBus.GetOutputWire(3))
+	c.flagStateGates[3].Update(c.ir.Bit(7), c.flagsBus.GetOutputWire(FLAGS_BUS_ZERO))
 
 	c.flagStateORGate.Update(
 		c.flagStateGates[0].Output(),
@@ -865,6 +890,13 @@ func (c *CPU) runSetOnRAM(state bool) {
 func (c *CPU) runSetOnTMP(state bool) {
 	c.tmpSetANDGate.Update(state, c.step4Gates[0].Output())
 	updateSetStatus(&c.tmp, c.tmpSetANDGate.Output())
+
+	// We will add a new memory bit called
+	// "Carry Temp" that goes between the Carry Flag and the enabler
+	// we just added above. It will be set in step 4, the same time that the TMP register gets
+	// set. Thus, the ALU instruction will have a carry input that cannot change during step 5.
+	c.carryTemp.Update(c.flagsBus.GetOutputWire(FLAGS_BUS_CARRY), c.tmpSetANDGate.Output())
+	c.carryANDGate.Update(c.carryTemp.Get(), c.step5Gates[0].Output())
 }
 
 func (c *CPU) runSetOnRegisterB() {
