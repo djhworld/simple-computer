@@ -2,43 +2,43 @@ package components
 
 import "testing"
 
-func TestByte(t *testing.T) {
+func TestWord(t *testing.T) {
 	d := new(DummyComponent)
 
 	for i, _ := range d.wires {
 		d.SetInputWire(i, true)
 	}
 
-	b := NewByte()
-	d.ConnectOutput(b)
+	w := NewWord()
+	d.ConnectOutput(w)
 	d.Update()
-	b.Update(false)
+	w.Update(false)
 
-	for _, w := range b.outputs {
+	for _, w := range w.outputs {
 		if !w.Get() {
 			t.FailNow()
 		}
 	}
 }
 
-func TestByteWithSetOn(t *testing.T) {
+func TestWordWithSetOn(t *testing.T) {
 	d := new(DummyComponent)
 
 	for i, _ := range d.wires {
 		d.SetInputWire(i, true)
 	}
 
-	b := NewByte()
-	d.ConnectOutput(b)
+	w := NewWord()
+	d.ConnectOutput(w)
 	d.Update()
-	b.Update(true)
+	w.Update(true)
 
-	results := [8]bool{}
-	for i, w := range b.outputs {
+	results := [16]bool{}
+	for i, w := range w.outputs {
 		results[i] = w.Get()
 	}
 
-	if results != [8]bool{true, true, true, true, true, true, true, true} {
+	if results != [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true} {
 		t.FailNow()
 	}
 }

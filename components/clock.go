@@ -7,5 +7,5 @@ type Clock struct {
 }
 
 func (c *Clock) Start() {
-	c.BaseClock = time.NewTicker(100 * time.Millisecond)
+	c.BaseClock = time.NewTicker(10 * time.Microsecond)
 }

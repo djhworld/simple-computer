@@ -1,15 +1,11 @@
 package circuit
 
 type NANDGate struct {
-	inputA Wire
-	inputB Wire
 	output Wire
 }
 
 func NewNANDGate() *NANDGate {
 	return &NANDGate{
-		inputA: *NewWire("I", false),
-		inputB: *NewWire("S", false),
 		output: *NewWire("O", false),
 	}
 }
@@ -19,37 +15,21 @@ func (g *NANDGate) Output() bool {
 }
 
 func (g *NANDGate) Update(inputA, inputB bool) {
-	g.inputA.Update(inputA)
-	g.inputB.Update(inputB)
-	if g.inputA.Get() && g.inputB.Get() {
-		g.output.Update(false)
-	} else {
-		g.output.Update(true)
-	}
+	g.output.Update(!(inputA && inputB))
 }
 
 type ANDGate struct {
-	inputA Wire
-	inputB Wire
 	output Wire
 }
 
 func NewANDGate() *ANDGate {
 	return &ANDGate{
-		inputA: *NewWire("I", false),
-		inputB: *NewWire("S", false),
 		output: *NewWire("O", false),
 	}
 }
 
 func (g *ANDGate) Update(inputA bool, inputB bool) {
-	g.inputA.Update(inputA)
-	g.inputB.Update(inputB)
-	if g.inputA.Get() && g.inputB.Get() {
-		g.output.Update(true)
-	} else {
-		g.output.Update(false)
-	}
+	g.output.Update((inputA && inputB))
 }
 
 func (g *ANDGate) Output() bool {
@@ -57,24 +37,17 @@ func (g *ANDGate) Output() bool {
 }
 
 type NOTGate struct {
-	inputA Wire
 	output Wire
 }
 
 func NewNOTGate() *NOTGate {
 	return &NOTGate{
-		inputA: *NewWire("I", false),
 		output: *NewWire("O", false),
 	}
 }
 
 func (g *NOTGate) Update(input bool) {
-	g.inputA.Update(input)
-	if g.inputA.Get() {
-		g.output.Update(false)
-	} else {
-		g.output.Update(true)
-	}
+	g.output.Update(!input)
 }
 
 func (g *NOTGate) Output() bool {
@@ -82,15 +55,11 @@ func (g *NOTGate) Output() bool {
 }
 
 type ORGate struct {
-	inputA Wire
-	inputB Wire
 	output Wire
 }
 
 func NewORGate() *ORGate {
 	return &ORGate{
-		inputA: *NewWire("I", false),
-		inputB: *NewWire("S", false),
 		output: *NewWire("O", false),
 	}
 }
@@ -100,26 +69,15 @@ func (g *ORGate) Output() bool {
 }
 
 func (g *ORGate) Update(inputA, inputB bool) {
-	g.inputA.Update(inputA)
-	g.inputB.Update(inputB)
-	if !g.inputA.Get() && !g.inputB.Get() {
-		g.output.Update(false)
-	} else {
-		g.output.Update(true)
-	}
-
+	g.output.Update(!(!inputA && !inputB))
 }
 
 type XORGate struct {
-	inputA Wire
-	inputB Wire
 	output Wire
 }
 
 func NewXORGate() *XORGate {
 	return &XORGate{
-		inputA: *NewWire("I", false),
-		inputB: *NewWire("S", false),
 		output: *NewWire("O", false),
 	}
 }
@@ -129,37 +87,19 @@ func (g *XORGate) Output() bool {
 }
 
 func (g *XORGate) Update(inputA, inputB bool) {
-	g.inputA.Update(inputA)
-	g.inputB.Update(inputB)
-	if !g.inputA.Get() && !g.inputB.Get() {
-		g.output.Update(false)
-	} else if g.inputA.Get() && g.inputB.Get() {
-		g.output.Update(false)
-	} else {
-		g.output.Update(true)
-	}
+	g.output.Update(!((!inputA && !inputB) || (inputA && inputB)))
 }
 
 type NORGate struct {
-	inputA Wire
-	inputB Wire
 	output Wire
 }
 
 func NewNORGate() *NORGate {
 	return &NORGate{
-		inputA: *NewWire("I", false),
-		inputB: *NewWire("S", false),
 		output: *NewWire("O", false),
 	}
 }
 
 func (g *NORGate) Update(inputA, inputB bool) {
-	g.inputA.Update(inputA)
-	g.inputB.Update(inputB)
-	if !g.inputA.Get() && !g.inputB.Get() {
-		g.output.Update(true)
-	} else {
-		g.output.Update(false)
-	}
+	g.output.Update(!inputA && !inputB)
 }

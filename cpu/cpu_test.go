@@ -7,34 +7,46 @@ import (
 	"github.com/djhworld/simple-computer/memory"
 )
 
+var BUS *components.Bus = components.NewBus(BUS_WIDTH)
+var MEMORY *memory.Memory64K = memory.NewMemory64K(BUS)
+
+func SetUpCPU() *CPU {
+	return NewCPU(BUS, MEMORY)
+}
+
+func ClearMem() {
+	for i := uint16(0); i < 65535; i++ {
+		setMemoryLocation2(MEMORY, i, 0x0000)
+	}
+	setMemoryLocation2(MEMORY, 0xFFFF, 0x0000)
+}
+
 func TestIARIncrementedOnEveryCycle(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
-	var q byte
-	for q = 0; q < 0xFF; q++ {
+	var q uint16
+	for q = 0; q < 1000; q++ {
 		doFetchDecodeExecute(c)
 		checkIAR(c, q+1, t)
 	}
 }
 
 func TestInstructionReceivedFromMemory(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	instructions := []byte{0x8A, 0x82, 0x88, 0x94, 0xB1}
+	instructions := []uint16{0x008A, 0x0082, 0x0088, 0x0094, 0x00B1}
 
-	var addr byte = 0x0F
+	var addr uint16 = 0xF00F
 	for _, b := range instructions {
 		setMemoryLocation(c, addr, b)
 		addr++
 	}
 
-	setIAR(c, 0x0F)
+	setIAR(c, 0xF00F)
 
 	for _, b := range instructions {
 		doFetchDecodeExecute(c)
@@ -43,13 +55,12 @@ func TestInstructionReceivedFromMemory(t *testing.T) {
 }
 
 func TestFlagsRegisterAllFalse(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, 0x81)
-	setRegisters(c, [4]byte{0x09, 0x0A, 0x02, 0x03})
-	setIAR(c, 0x00)
+	setMemoryLocation(c, 0x0000, 0x0081)
+	setRegisters(c, [4]uint16{0x0009, 0x000A, 0x0002, 0x0003})
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -57,13 +68,12 @@ func TestFlagsRegisterAllFalse(t *testing.T) {
 }
 
 func TestFlagsRegisterCarryFlagEnabled(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, 0x81)
-	setRegisters(c, [4]byte{0x20, 0xFF, 0x02, 0x03})
-	setIAR(c, 0x00)
+	setMemoryLocation(c, 0x0000, 0x0081)
+	setRegisters(c, [4]uint16{0x0020, 0xFFFF, 0x0002, 0x0003})
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -71,13 +81,12 @@ func TestFlagsRegisterCarryFlagEnabled(t *testing.T) {
 }
 
 func TestFlagsRegisterIsLargerFlagEnabled(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, 0x81)
-	setRegisters(c, [4]byte{0x21, 0x20, 0x02, 0x03})
-	setIAR(c, 0x00)
+	setMemoryLocation(c, 0x0000, 0x0081)
+	setRegisters(c, [4]uint16{0x0021, 0x0020, 0x0002, 0x0003})
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -85,13 +94,12 @@ func TestFlagsRegisterIsLargerFlagEnabled(t *testing.T) {
 }
 
 func TestFlagsRegisterIsEqualsFlagEnabled(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, 0x81)
-	setRegisters(c, [4]byte{0x21, 0x21, 0x02, 0x03})
-	setIAR(c, 0x00)
+	setMemoryLocation(c, 0x0000, 0x0081)
+	setRegisters(c, [4]uint16{0x0021, 0x0021, 0x0002, 0x0003})
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -99,13 +107,12 @@ func TestFlagsRegisterIsEqualsFlagEnabled(t *testing.T) {
 }
 
 func TestFlagsRegisterIsZeroFlagEnabled(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, 0x81)
-	setRegisters(c, [4]byte{0x01, 0xFF, 0x02, 0x03})
-	setIAR(c, 0x00)
+	setMemoryLocation(c, 0x0000, 0x0081)
+	setRegisters(c, [4]uint16{0x0001, 0xFFFF, 0x0002, 0x0003})
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -113,106 +120,106 @@ func TestFlagsRegisterIsZeroFlagEnabled(t *testing.T) {
 }
 
 func TestFlagsRegisterMultipleEnabled(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, 0x81)
-	setRegisters(c, [4]byte{0xFF, 0x01, 0x02, 0x03})
-	setIAR(c, 0x00)
+	setMemoryLocation(c, 0x0000, 0x0081)
+	setRegisters(c, [4]uint16{0xFFFF, 0x0001, 0x0002, 0x0003})
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
 	checkFlagsRegister(c, true, true, false, true, t)
 }
 func TestSTThenLD(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	for i := byte(0); i < 128; i++ {
-		setMemoryLocation(c, i, 0x1B)
+	for i := uint16(0); i < 512; i++ {
+		//  ST R2, R3
+		setMemoryLocation(c, i, 0x001B)
 	}
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
-	var value byte = 0xFE
-	for i := 0x80; i <= 0xFF; i++ {
-		setRegisters(c, [4]byte{0x01, 0x01, byte(i), value})
+	//storing values into memory
+	var value uint16 = 0x0400
+	for i := 0x0200; i < 0x0400; i++ {
+		setRegisters(c, [4]uint16{0x0001, 0x0001, uint16(i), value})
 		doFetchDecodeExecute(c)
 		value--
 	}
 
-	for i := byte(0); i < 128; i++ {
-		setMemoryLocation(c, i, 0x0B)
+	for i := uint16(0); i < 512; i++ {
+		// LD R2, R3
+		setMemoryLocation(c, i, 0x000B)
 	}
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
-	value = 0xFE
-	for i := 0x80; i <= 0xFF; i++ {
-		setRegisters(c, [4]byte{0x01, 0x01, byte(i), 0x01})
+	//retrieving them back from memory
+	value = 0x0400
+	for i := 0x0200; i < 0x0400; i++ {
+		setRegisters(c, [4]uint16{0x0001, 0x0001, uint16(i), 0x0001})
 		doFetchDecodeExecute(c)
-		checkRegisters(c, 0x01, 0x01, byte(i), value, t)
+		checkRegisters(c, 0x0001, 0x0001, uint16(i), value, t)
 		value--
 	}
 }
 
 func TestLD4Times(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	var addr byte = 0xA2
-	values := []byte{0x88, 0x90, 0x92, 0xAB}
+	var addr uint16 = 0x00A2
+	values := []uint16{0x0088, 0x0090, 0x0092, 0x00AB}
 
-	for i := byte(0); i < byte(len(values)); i++ {
-		setMemoryLocation(c, i, 0x01)
+	for i := uint16(0); i < uint16(len(values)); i++ {
+		setMemoryLocation(c, i, 0x0001)
 		setMemoryLocation(c, addr, values[i])
 		addr++
 	}
 
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
-	addr = 0xA2
+	addr = 0x00A2
 	for _, v := range values {
 		setRegister(c, 0, addr)
-		setRegister(c, 1, 0x01)
-		setRegister(c, 2, 0x01)
-		setRegister(c, 3, 0x01)
+		setRegister(c, 1, 0x0001)
+		setRegister(c, 2, 0x0001)
+		setRegister(c, 3, 0x0001)
 
 		doFetchDecodeExecute(c)
-		checkRegisters(c, addr, v, 0x01, 0x01, t)
+		checkRegisters(c, addr, v, 0x0001, 0x0001, t)
 		addr++
 	}
 }
 
 func TestLD(t *testing.T) {
-	testLD(0x00, 0x80, 0x23, []byte{0x80, 0x81, 0x82, 0x83}, []byte{0x23, 0x81, 0x82, 0x83}, t)
-	testLD(0x01, 0x84, 0xF2, []byte{0x84, 0x85, 0x86, 0x87}, []byte{0x84, 0xF2, 0x86, 0x87}, t)
-	testLD(0x02, 0x88, 0x01, []byte{0x88, 0x89, 0x8A, 0x8B}, []byte{0x88, 0x89, 0x01, 0x8B}, t)
-	testLD(0x03, 0x8C, 0x5A, []byte{0x8C, 0x8D, 0x8E, 0x8F}, []byte{0x8C, 0x8D, 0x8E, 0x5A}, t)
+	ClearMem()
 
-	testLD(0x04, 0x91, 0x23, []byte{0x90, 0x91, 0x92, 0x93}, []byte{0x23, 0x91, 0x92, 0x93}, t)
-	testLD(0x05, 0x95, 0xF2, []byte{0x94, 0x95, 0x96, 0x97}, []byte{0x94, 0xF2, 0x96, 0x97}, t)
-	testLD(0x06, 0x99, 0x01, []byte{0x98, 0x99, 0x9A, 0x9B}, []byte{0x98, 0x99, 0x01, 0x9B}, t)
-	testLD(0x07, 0x9D, 0x5A, []byte{0x9C, 0x9D, 0x9E, 0x9F}, []byte{0x9C, 0x9D, 0x9E, 0x5A}, t)
+	testLD(0x0000, 0x0080, 0x0023, []uint16{0x0080, 0x0081, 0x0082, 0x0083}, []uint16{0x0023, 0x0081, 0x0082, 0x0083}, t)
+	testLD(0x0001, 0x0084, 0x00F2, []uint16{0x0084, 0x0085, 0x0086, 0x0087}, []uint16{0x0084, 0x00F2, 0x0086, 0x0087}, t)
+	testLD(0x0002, 0x0088, 0x0001, []uint16{0x0088, 0x0089, 0x008A, 0x008B}, []uint16{0x0088, 0x0089, 0x0001, 0x008B}, t)
+	testLD(0x0003, 0x008C, 0x005A, []uint16{0x008C, 0x008D, 0x008E, 0x008F}, []uint16{0x008C, 0x008D, 0x008E, 0x005A}, t)
 
-	testLD(0x08, 0xA2, 0x23, []byte{0xA0, 0xA1, 0xA2, 0xA3}, []byte{0x23, 0xA1, 0xA2, 0xA3}, t)
-	testLD(0x09, 0xA6, 0xF2, []byte{0xA4, 0xA5, 0xA6, 0xA7}, []byte{0xA4, 0xF2, 0xA6, 0xA7}, t)
-	testLD(0x0A, 0xAA, 0x01, []byte{0xA8, 0xA9, 0xAA, 0xAB}, []byte{0xA8, 0xA9, 0x01, 0xAB}, t)
-	testLD(0x0B, 0xAE, 0x5A, []byte{0xAC, 0xAD, 0xAE, 0xAF}, []byte{0xAC, 0xAD, 0xAE, 0x5A}, t)
+	testLD(0x0004, 0x0091, 0x0023, []uint16{0x0090, 0x0091, 0x0092, 0x0093}, []uint16{0x0023, 0x0091, 0x0092, 0x0093}, t)
+	testLD(0x0005, 0x0095, 0x00F2, []uint16{0x0094, 0x0095, 0x0096, 0x0097}, []uint16{0x0094, 0x00F2, 0x0096, 0x0097}, t)
+	testLD(0x0006, 0x0099, 0x0001, []uint16{0x0098, 0x0099, 0x009A, 0x009B}, []uint16{0x0098, 0x0099, 0x0001, 0x009B}, t)
+	testLD(0x0007, 0x009D, 0x005A, []uint16{0x009C, 0x009D, 0x009E, 0x009F}, []uint16{0x009C, 0x009D, 0x009E, 0x005A}, t)
 
-	testLD(0x0C, 0xB3, 0x23, []byte{0xB0, 0xB1, 0xB2, 0xB3}, []byte{0x23, 0xB1, 0xB2, 0xB3}, t)
-	testLD(0x0D, 0xB7, 0xF2, []byte{0xB4, 0xB5, 0xB6, 0xB7}, []byte{0xB4, 0xF2, 0xB6, 0xB7}, t)
-	testLD(0x0E, 0xBB, 0x01, []byte{0xB8, 0xB9, 0xBA, 0xBB}, []byte{0xB8, 0xB9, 0x01, 0xBB}, t)
-	testLD(0x0F, 0xBF, 0x5A, []byte{0xBC, 0xBD, 0xBE, 0xBF}, []byte{0xBC, 0xBD, 0xBE, 0x5A}, t)
+	testLD(0x0008, 0x00A2, 0x0023, []uint16{0x00A0, 0x00A1, 0x00A2, 0x00A3}, []uint16{0x0023, 0x00A1, 0x00A2, 0x00A3}, t)
+	testLD(0x0009, 0x00A6, 0x00F2, []uint16{0x00A4, 0x00A5, 0x00A6, 0x00A7}, []uint16{0x00A4, 0x00F2, 0x00A6, 0x00A7}, t)
+	testLD(0x000A, 0x00AA, 0x0001, []uint16{0x00A8, 0x00A9, 0x00AA, 0x00AB}, []uint16{0x00A8, 0x00A9, 0x0001, 0x00AB}, t)
+	testLD(0x000B, 0x00AE, 0x005A, []uint16{0x00AC, 0x00AD, 0x00AE, 0x00AF}, []uint16{0x00AC, 0x00AD, 0x00AE, 0x005A}, t)
+
+	testLD(0x000C, 0x00B3, 0x0023, []uint16{0x00B0, 0x00B1, 0x00B2, 0x00B3}, []uint16{0x0023, 0x00B1, 0x00B2, 0x00B3}, t)
+	testLD(0x000D, 0x00B7, 0x00F2, []uint16{0x00B4, 0x00B5, 0x00B6, 0x00B7}, []uint16{0x00B4, 0x00F2, 0x00B6, 0x00B7}, t)
+	testLD(0x000E, 0x22BB, 0xAB01, []uint16{0x00B8, 0x00B9, 0x00BA, 0x22BB}, []uint16{0x00B8, 0x00B9, 0xAB01, 0x22BB}, t)
+	testLD(0x000F, 0x00BF, 0x005A, []uint16{0x00BC, 0x00BD, 0x00BE, 0x00BF}, []uint16{0x00BC, 0x00BD, 0x00BE, 0x005A}, t)
 }
 
-func testLD(instruction byte, memAddress, memValue byte, inputRegisters, expectedOutputRegisters []byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-
-	var insAddr byte = 0x00
+func testLD(instruction uint16, memAddress, memValue uint16, inputRegisters, expectedOutputRegisters []uint16, t *testing.T) {
+	c := SetUpCPU()
+	var insAddr uint16 = 0x0000
 	setMemoryLocation(c, insAddr, instruction)
 	setIAR(c, insAddr)
 
@@ -227,34 +234,33 @@ func testLD(instruction byte, memAddress, memValue byte, inputRegisters, expecte
 }
 
 func TestST(t *testing.T) {
-	testST(0x10, [4]byte{0xA0, 0x01, 0x01, 0x01}, 0xA0, 0xA0, t)
-	testST(0x11, [4]byte{0xA1, 0x29, 0x01, 0x01}, 0xA1, 0x29, t)
-	testST(0x12, [4]byte{0xA2, 0x01, 0x7F, 0x01}, 0xA2, 0x7F, t)
-	testST(0x13, [4]byte{0xA3, 0x01, 0x01, 0x1B}, 0xA3, 0x1B, t)
+	ClearMem()
+	testST(0x0010, [4]uint16{0x00A0, 0x0001, 0x0001, 0x0001}, 0x00A0, 0x00A0, t)
+	testST(0x0011, [4]uint16{0x00A1, 0x0029, 0x0001, 0x0001}, 0x00A1, 0x0029, t)
+	testST(0x0012, [4]uint16{0x00A2, 0x0001, 0x007F, 0x0001}, 0x00A2, 0x007F, t)
+	testST(0x0013, [4]uint16{0x00A3, 0x0001, 0x0001, 0x001B}, 0x00A3, 0x001B, t)
 
-	testST(0x14, [4]byte{0xA0, 0xB4, 0x01, 0x01}, 0xB4, 0xA0, t)
-	testST(0x15, [4]byte{0x01, 0xB5, 0x01, 0x01}, 0xB5, 0xB5, t)
-	testST(0x16, [4]byte{0x01, 0xB6, 0x7F, 0x01}, 0xB6, 0x7F, t)
-	testST(0x17, [4]byte{0x01, 0xB7, 0x01, 0x1B}, 0xB7, 0x1B, t)
+	testST(0x0014, [4]uint16{0x00A0, 0x00B4, 0x0001, 0x0001}, 0x00B4, 0x00A0, t)
+	testST(0x0015, [4]uint16{0x0001, 0x00B5, 0x0001, 0x0001}, 0x00B5, 0x00B5, t)
+	testST(0x0016, [4]uint16{0x0001, 0x00B6, 0x007F, 0x0001}, 0x00B6, 0x007F, t)
+	testST(0x0017, [4]uint16{0x0001, 0x00B7, 0x0001, 0x001B}, 0x00B7, 0x001B, t)
 
-	testST(0x18, [4]byte{0xA0, 0x01, 0xC8, 0x01}, 0xC8, 0xA0, t)
-	testST(0x19, [4]byte{0x01, 0x29, 0xC9, 0x01}, 0xC9, 0x29, t)
-	testST(0x1A, [4]byte{0x01, 0x01, 0xCA, 0x01}, 0xCA, 0xCA, t)
-	testST(0x1B, [4]byte{0x01, 0x01, 0xCB, 0x1B}, 0xCB, 0x1B, t)
+	testST(0x0018, [4]uint16{0x00A0, 0x0001, 0x00C8, 0x0001}, 0x00C8, 0x00A0, t)
+	testST(0x0019, [4]uint16{0x0001, 0x0029, 0x00C9, 0x0001}, 0x00C9, 0x0029, t)
+	testST(0x001A, [4]uint16{0x0001, 0x0001, 0x00CA, 0x0001}, 0x00CA, 0x00CA, t)
+	testST(0x001B, [4]uint16{0x0001, 0x0001, 0x00CB, 0x001B}, 0x00CB, 0x001B, t)
 
-	testST(0x1C, [4]byte{0xA0, 0x01, 0x01, 0xDC}, 0xDC, 0xA0, t)
-	testST(0x1D, [4]byte{0x01, 0x29, 0x01, 0xDD}, 0xDD, 0x29, t)
-	testST(0x1E, [4]byte{0x01, 0x01, 0x7F, 0xDE}, 0xDE, 0x7F, t)
-	testST(0x1F, [4]byte{0x01, 0x01, 0x01, 0xDF}, 0xDF, 0xDF, t)
+	testST(0x001C, [4]uint16{0x00A0, 0x0001, 0x0001, 0x00DC}, 0x00DC, 0x00A0, t)
+	testST(0x001D, [4]uint16{0x0001, 0x0029, 0x0001, 0x00DD}, 0x00DD, 0x0029, t)
+	testST(0x001E, [4]uint16{0x0001, 0x0001, 0x1A7F, 0xFCDE}, 0xFCDE, 0x1A7F, t)
+	testST(0x001F, [4]uint16{0x0001, 0x0001, 0x0001, 0x00DF}, 0x00DF, 0x00DF, t)
 }
 
-func testST(instruction byte, inputRegisters [4]byte, expectedValueAddress, expectedValue byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+func testST(instruction uint16, inputRegisters [4]uint16, expectedValueAddress, expectedValue uint16, t *testing.T) {
+	c := SetUpCPU()
 
 	// ST value into memory
-	var insAddr byte = 0x00
+	var insAddr uint16 = 0x0000
 	setMemoryLocation(c, insAddr, instruction)
 	setIAR(c, insAddr)
 
@@ -263,10 +269,10 @@ func testST(instruction byte, inputRegisters [4]byte, expectedValueAddress, expe
 	doFetchDecodeExecute(c)
 
 	//LD value into register zero
-	setMemoryLocation(c, insAddr+1, 0x00)
+	setMemoryLocation(c, insAddr+1, 0x0000)
 	setIAR(c, insAddr+1)
 
-	setRegisters(c, [4]byte{expectedValueAddress, inputRegisters[1], inputRegisters[2], inputRegisters[3]})
+	setRegisters(c, [4]uint16{expectedValueAddress, inputRegisters[1], inputRegisters[2], inputRegisters[3]})
 
 	doFetchDecodeExecute(c)
 
@@ -277,55 +283,52 @@ func testST(instruction byte, inputRegisters [4]byte, expectedValueAddress, expe
 }
 
 func TestDATA(t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+	ClearMem()
+	c := SetUpCPU()
 
-	var insAddr byte = 0x00
+	var insAddr uint16 = 0x0000
 
 	// DATA R0
-	setMemoryLocation(c, insAddr, 0x20)
-	setMemoryLocation(c, insAddr+1, 0x71)
+	setMemoryLocation(c, insAddr, 0x0020)
+	setMemoryLocation(c, insAddr+1, 0xF071)
 
 	// DATA R1
-	setMemoryLocation(c, insAddr+2, 0x21)
-	setMemoryLocation(c, insAddr+3, 0x72)
+	setMemoryLocation(c, insAddr+2, 0x0021)
+	setMemoryLocation(c, insAddr+3, 0xF172)
 
 	// DATA R2
-	setMemoryLocation(c, insAddr+4, 0x22)
-	setMemoryLocation(c, insAddr+5, 0x73)
+	setMemoryLocation(c, insAddr+4, 0x0022)
+	setMemoryLocation(c, insAddr+5, 0xF273)
 
 	// DATA R3
-	setMemoryLocation(c, insAddr+6, 0x23)
-	setMemoryLocation(c, insAddr+7, 0x74)
+	setMemoryLocation(c, insAddr+6, 0x0023)
+	setMemoryLocation(c, insAddr+7, 0xF374)
 
 	setIAR(c, insAddr)
 
-	setRegisters(c, [4]byte{0x01, 0x01, 0x01, 0x01})
+	setRegisters(c, [4]uint16{0x0001, 0x0001, 0x0001, 0x0001})
 
 	for i := 0; i < 4; i++ {
 		doFetchDecodeExecute(c)
 	}
 
-	checkRegisters(c, 0x71, 0x72, 0x73, 0x74, t)
+	checkRegisters(c, 0xF071, 0xF172, 0xF273, 0xF374, t)
 
 	// check IAR has incremented 2 each time
-	checkIAR(c, 0x08, t)
+	checkIAR(c, 0x0008, t)
 }
 
 func TestJMPR(t *testing.T) {
-	testJMPR(0x30, [4]byte{0x83, 0x01, 0x01, 0x01}, 0x83, t)
-	testJMPR(0x31, [4]byte{0x01, 0xF1, 0x01, 0x01}, 0xF1, t)
-	testJMPR(0x32, [4]byte{0x01, 0x01, 0xBB, 0x01}, 0xBB, t)
-	testJMPR(0x33, [4]byte{0x01, 0x01, 0x01, 0x19}, 0x19, t)
+	ClearMem()
+	testJMPR(0x0030, [4]uint16{0x0083, 0x0001, 0x0001, 0x0001}, 0x0083, t)
+	testJMPR(0x0031, [4]uint16{0x0001, 0x00F1, 0x0001, 0x0001}, 0x00F1, t)
+	testJMPR(0x0032, [4]uint16{0x0001, 0x0001, 0x00BB, 0x0001}, 0x00BB, t)
+	testJMPR(0x0033, [4]uint16{0x0001, 0x0001, 0x0001, 0xFF19}, 0xFF19, t)
 }
 
-func testJMPR(instruction byte, inputRegisters [4]byte, expectedIAR byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-
-	var insAddr byte = 0x00
+func testJMPR(instruction uint16, inputRegisters [4]uint16, expectedIAR uint16, t *testing.T) {
+	c := SetUpCPU()
+	var insAddr uint16 = 0x0000
 
 	// JMPR
 	setMemoryLocation(c, insAddr, instruction)
@@ -344,25 +347,23 @@ func testJMPR(instruction byte, inputRegisters [4]byte, expectedIAR byte, t *tes
 }
 
 func TestJMP(t *testing.T) {
-	for i := 0; i < 0xFF; i++ {
-		testJMP(byte(i), t)
+	ClearMem()
+	for i := 0; i < 0x0400; i++ {
+		testJMP(uint16(i), t)
 	}
 }
 
-func testJMP(expectedIAR byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-
-	var insAddr byte = 0x00
+func testJMP(expectedIAR uint16, t *testing.T) {
+	c := SetUpCPU()
+	var insAddr uint16 = 0x0000
 
 	// JMP
-	setMemoryLocation(c, insAddr, 0x40)
+	setMemoryLocation(c, insAddr, 0x0040)
 	setMemoryLocation(c, insAddr+1, expectedIAR)
 
 	setIAR(c, insAddr)
 
-	inputRegisters := [4]byte{0x01, 0x01, 0x01, 0x01}
+	inputRegisters := [4]uint16{0x0001, 0x0001, 0x0001, 0x0001}
 	setRegisters(c, inputRegisters)
 
 	doFetchDecodeExecute(c)
@@ -375,181 +376,194 @@ func testJMP(expectedIAR byte, t *testing.T) {
 }
 
 func TestJMPC(t *testing.T) {
-	testJMPConditional(0x58, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	ClearMem()
+	testJMPConditional(0x0058, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 	// should not jump in false case
-	testJMPConditional(0x58, 0x91, 0x81, [4]byte{0x05, 0x06, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0058, 0x0091, 0x0081, [4]uint16{0x0005, 0x0006, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPA(t *testing.T) {
-	testJMPConditional(0x54, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	ClearMem()
+	testJMPConditional(0x0054, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0001, 0x0001, 0x002}, 0x0020, t)
 	// should not jump in false case
-	testJMPConditional(0x54, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0054, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPE(t *testing.T) {
-	testJMPConditional(0x52, 0xAE, 0xF1, [4]byte{0x00, 0x00, 0x01, 0x2}, 0xAE, t)
+	ClearMem()
+	testJMPConditional(0x0052, 0x00AE, 0x00F1, [4]uint16{0x0000, 0x0000, 0x0001, 0x002}, 0x00AE, t)
 	// should not jump in false case
-	testJMPConditional(0x52, 0xAF, 0xF1, [4]byte{0x10, 0x11, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0052, 0x00AF, 0x00F1, [4]uint16{0x0010, 0x0011, 0x0001, 0x0001}, 0x0003, t)
 }
 func TestJMPZ(t *testing.T) {
-	// perform NOT on R0 (0xFF) to trigger zero flag
-	testJMPConditional(0x51, 0xAE, 0xB0, [4]byte{0xFF, 0x01, 0x01, 0x1}, 0xAE, t)
+	ClearMem()
+	// perform NOT on R0 (0x00FF) to trigger zero flag
+	testJMPConditional(0x0051, 0x00AE, 0x00B0, [4]uint16{0xFFFF, 0x0001, 0x0001, 0x001}, 0x00AE, t)
 
 	// should not jump in false case
-	testJMPConditional(0x51, 0xAF, 0xB0, [4]byte{0x00, 0x11, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0051, 0x00AF, 0x00B0, [4]uint16{0x0000, 0x0011, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPCA(t *testing.T) {
+	ClearMem()
 	// Jump If Carry or A larger
 	// carry condition
-	testJMPConditional(0x5C, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005C, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 	// a is larger
-	testJMPConditional(0x5C, 0x90, 0x81, [4]byte{0x0A, 0x01, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005C, 0x0090, 0x0081, [4]uint16{0x000A, 0x0001, 0x0001, 0x002}, 0x0090, t)
 	// should not jump in false case
-	testJMPConditional(0x5C, 0x91, 0x81, [4]byte{0x01, 0x01, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x005C, 0x0091, 0x0081, [4]uint16{0x0001, 0x0001, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPCE(t *testing.T) {
+	ClearMem()
 	// Jump If Carry or A = B
 	// carry condition
-	testJMPConditional(0x5A, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005A, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 	// a = b
-	testJMPConditional(0x5A, 0x90, 0x81, [4]byte{0x02, 0x02, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005A, 0x0090, 0x0081, [4]uint16{0x0002, 0x0002, 0x0001, 0x002}, 0x0090, t)
 	// should not jump in false case
-	testJMPConditional(0x5A, 0x91, 0x81, [4]byte{0x01, 0x02, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x005A, 0x0091, 0x0081, [4]uint16{0x0001, 0x0002, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPCZ(t *testing.T) {
+	ClearMem()
 	// Jump If Carry or zero flag
 	// carry condition
-	testJMPConditional(0x59, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x0059, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 	// zero flag
-	testJMPConditional(0x59, 0x90, 0xB0, [4]byte{0xFF, 0xFE, 0xFE, 0xFE}, 0x90, t)
+	testJMPConditional(0x0059, 0x0090, 0x00B0, [4]uint16{0xFFFF, 0x00FE, 0x00FE, 0x00FE}, 0x0090, t)
 	// should not jump in false case
-	testJMPConditional(0x59, 0x91, 0x81, [4]byte{0x01, 0x02, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0059, 0x0091, 0x0081, [4]uint16{0x0001, 0x0002, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPAE(t *testing.T) {
+	ClearMem()
 	// Jump is A is larger or A = B
 	// a larger
-	testJMPConditional(0x56, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x0056, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0001, 0x0001, 0x002}, 0x0020, t)
 	//a = b
-	testJMPConditional(0x56, 0x20, 0xF1, [4]byte{0x02, 0x02, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x0056, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0002, 0x0001, 0x002}, 0x0020, t)
 	// should not jump in false case
-	testJMPConditional(0x56, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0056, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPAZ(t *testing.T) {
+	ClearMem()
 	// Jump is A is larger or zero flag
 	// a larger
-	testJMPConditional(0x55, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x0055, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0001, 0x0001, 0x002}, 0x0020, t)
 	// zero flag (using and)
-	testJMPConditional(0x55, 0x20, 0xC1, [4]byte{0x01, 0xFE, 0x02, 0x02}, 0x20, t)
+	testJMPConditional(0x0055, 0x0020, 0x00C1, [4]uint16{0x0001, 0x00FE, 0x0002, 0x0002}, 0x0020, t)
 
 	// should not jump in false case
-	testJMPConditional(0x55, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0055, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPEZ(t *testing.T) {
+	ClearMem()
 	// Jump if A = B or zero flag
 	// a = b
-	testJMPConditional(0x53, 0x20, 0xF1, [4]byte{0x02, 0x02, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x0053, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0002, 0x0001, 0x002}, 0x0020, t)
 	// zero flag (using and)
-	testJMPConditional(0x53, 0x20, 0xC1, [4]byte{0x01, 0xFE, 0x02, 0x02}, 0x20, t)
+	testJMPConditional(0x0053, 0x0020, 0x00C1, [4]uint16{0x0001, 0x00FE, 0x0002, 0x0002}, 0x0020, t)
 
 	// should not jump in false case
-	testJMPConditional(0x53, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0053, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPCAE(t *testing.T) {
+	ClearMem()
 	// Jump if Carry OR A is Larger OR A = B
 
 	// carry condition
-	testJMPConditional(0x5E, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005E, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 
 	// a larger
-	testJMPConditional(0x5E, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x005E, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0001, 0x0001, 0x002}, 0x0020, t)
 
 	// a = b
-	testJMPConditional(0x5E, 0x20, 0xF1, [4]byte{0x02, 0x02, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x005E, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0002, 0x0001, 0x002}, 0x0020, t)
 
 	// should not jump in false case
-	testJMPConditional(0x5E, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x005E, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPCAZ(t *testing.T) {
+	ClearMem()
 	// Jump if Carry OR A is Larger OR zero flag
 
 	// carry condition
-	testJMPConditional(0x5D, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005D, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 
 	// a larger
-	testJMPConditional(0x5D, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x005D, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0001, 0x0001, 0x002}, 0x0020, t)
 
 	// zero flag (using and)
-	testJMPConditional(0x5D, 0x20, 0xC1, [4]byte{0x01, 0xFE, 0x02, 0x02}, 0x20, t)
+	testJMPConditional(0x005D, 0x0020, 0x00C1, [4]uint16{0x0001, 0x00FE, 0x0002, 0x0002}, 0x0020, t)
 
 	// should not jump in false case
-	testJMPConditional(0x5D, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x005D, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPCEZ(t *testing.T) {
+	ClearMem()
 	// Jump if Carry OR a = b OR zero flag
 
 	// carry condition
-	testJMPConditional(0x5B, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005B, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 
 	// a = b
-	testJMPConditional(0x5B, 0x20, 0xF1, [4]byte{0x02, 0x02, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x005B, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0002, 0x0001, 0x002}, 0x0020, t)
 
 	// zero flag (using and)
-	testJMPConditional(0x5B, 0x20, 0xC1, [4]byte{0x01, 0xFE, 0x02, 0x02}, 0x20, t)
+	testJMPConditional(0x005B, 0x0020, 0x00C1, [4]uint16{0x0001, 0x00FE, 0x0002, 0x0002}, 0x0020, t)
 
 	// should not jump in false case
-	testJMPConditional(0x5B, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x005B, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPAEZ(t *testing.T) {
+	ClearMem()
 	// Jump if a is larger OR a = b OR zero flag
 
 	// a larger
-	testJMPConditional(0x57, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x0057, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0001, 0x0001, 0x002}, 0x0020, t)
 
 	// a = b
-	testJMPConditional(0x57, 0x20, 0xF1, [4]byte{0x02, 0x02, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x0057, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0002, 0x0001, 0x002}, 0x0020, t)
 
 	// zero flag (using and)
-	testJMPConditional(0x57, 0x20, 0xC1, [4]byte{0x01, 0xFE, 0x02, 0x02}, 0x20, t)
+	testJMPConditional(0x0057, 0x0020, 0x00C1, [4]uint16{0x0001, 0x00FE, 0x0002, 0x0002}, 0x0020, t)
 
 	// should not jump in false case
-	testJMPConditional(0x57, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x0057, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
 func TestJMPCAEZ(t *testing.T) {
+	ClearMem()
 	// Jump if Carry OR a is larger OR a = b OR zero flag
 
 	// carry condition
-	testJMPConditional(0x5F, 0x90, 0x81, [4]byte{0x04, 0xFF, 0x01, 0x2}, 0x90, t)
+	testJMPConditional(0x005F, 0x0090, 0x0081, [4]uint16{0x0004, 0xFFFF, 0x0001, 0x002}, 0x0090, t)
 
 	// a larger
-	testJMPConditional(0x5F, 0x20, 0xF1, [4]byte{0x02, 0x01, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x005F, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0001, 0x0001, 0x002}, 0x0020, t)
 
 	// a = b
-	testJMPConditional(0x5F, 0x20, 0xF1, [4]byte{0x02, 0x02, 0x01, 0x2}, 0x20, t)
+	testJMPConditional(0x005F, 0x0020, 0x00F1, [4]uint16{0x0002, 0x0002, 0x0001, 0x002}, 0x0020, t)
 
 	// zero flag (using and)
-	testJMPConditional(0x5F, 0x20, 0xC1, [4]byte{0x01, 0xFE, 0x02, 0x02}, 0x20, t)
+	testJMPConditional(0x005F, 0x0020, 0x00C1, [4]uint16{0x0001, 0x00FE, 0x0002, 0x0002}, 0x0020, t)
 
 	// should not jump in false case
-	testJMPConditional(0x5F, 0x21, 0xF1, [4]byte{0x01, 0x03, 0x01, 0x01}, 0x03, t)
+	testJMPConditional(0x005F, 0x0021, 0x00F1, [4]uint16{0x0001, 0x0003, 0x0001, 0x0001}, 0x0003, t)
 }
 
-func testJMPConditional(jmpConditionInstr, destination, initialInstr byte, inputRegisters [4]byte, expectedIAR byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+func testJMPConditional(jmpConditionInstr, destination, initialInstr uint16, inputRegisters [4]uint16, expectedIAR uint16, t *testing.T) {
+	c := SetUpCPU()
 
-	var insAddr byte = 0x00
+	var insAddr uint16 = 0x0000
 
 	setMemoryLocation(c, insAddr, initialInstr)
 	setMemoryLocation(c, insAddr+1, jmpConditionInstr)
@@ -567,25 +581,24 @@ func testJMPConditional(jmpConditionInstr, destination, initialInstr byte, input
 }
 
 func TestCLF(t *testing.T) {
+	ClearMem()
 	// carry + zero + greater
-	testCLF(0x81, [4]byte{0xFF, 0x01, 0x00, 0x00}, t)
+	testCLF(0x0081, [4]uint16{0xFFFF, 0x0001, 0x0000, 0x0000}, t)
 
 	// equal flag
-	testCLF(0x81, [4]byte{0x01, 0x01, 0x00, 0x00}, t)
+	testCLF(0x0081, [4]uint16{0x0001, 0x0001, 0x0000, 0x0000}, t)
 
 	// all flags should be false anyway
-	testCLF(0x81, [4]byte{0x01, 0x02, 0x00, 0x00}, t)
+	testCLF(0x0081, [4]uint16{0x0001, 0x0002, 0x0000, 0x0000}, t)
 }
 
-func testCLF(initialInstruction byte, initialRegisters [4]byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+func testCLF(initialInstruction uint16, initialRegisters [4]uint16, t *testing.T) {
+	var insAddr uint16 = 0x0000
 
-	var insAddr byte = 0x00
+	c := SetUpCPU()
 
 	setMemoryLocation(c, insAddr, initialInstruction)
-	setMemoryLocation(c, insAddr+1, 0x60)
+	setMemoryLocation(c, insAddr+1, 0x0060)
 
 	setIAR(c, insAddr)
 
@@ -598,161 +611,165 @@ func testCLF(initialInstruction byte, initialRegisters [4]byte, t *testing.T) {
 }
 
 func TestALUAdd(t *testing.T) {
-	var inputs [4]byte = [4]byte{0x02, 0x03, 0x04, 0x05}
+	ClearMem()
 
-	testInstruction(0x80, inputs, [4]byte{inputs[0] + inputs[0], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0x81, inputs, [4]byte{inputs[0], inputs[1] + inputs[0], inputs[2], inputs[3]}, t)
-	testInstruction(0x82, inputs, [4]byte{inputs[0], inputs[1], inputs[2] + inputs[0], inputs[3]}, t)
-	testInstruction(0x83, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[0]}, t)
+	var inputs [4]uint16 = [4]uint16{0x0002, 0x0003, 0xFD04, 0x0005}
+	testInstruction(0x0080, inputs, [4]uint16{inputs[0] + inputs[0], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x0081, inputs, [4]uint16{inputs[0], inputs[1] + inputs[0], inputs[2], inputs[3]}, t)
+	testInstruction(0x0082, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] + inputs[0], inputs[3]}, t)
+	testInstruction(0x0083, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[0]}, t)
 
-	testInstruction(0x84, inputs, [4]byte{inputs[0] + inputs[1], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0x85, inputs, [4]byte{inputs[0], inputs[1] + inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0x86, inputs, [4]byte{inputs[0], inputs[1], inputs[2] + inputs[1], inputs[3]}, t)
-	testInstruction(0x87, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[1]}, t)
+	testInstruction(0x0084, inputs, [4]uint16{inputs[0] + inputs[1], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x0085, inputs, [4]uint16{inputs[0], inputs[1] + inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x0086, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] + inputs[1], inputs[3]}, t)
+	testInstruction(0x0087, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[1]}, t)
 
-	testInstruction(0x88, inputs, [4]byte{inputs[0] + inputs[2], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0x89, inputs, [4]byte{inputs[0], inputs[1] + inputs[2], inputs[2], inputs[3]}, t)
-	testInstruction(0x8A, inputs, [4]byte{inputs[0], inputs[1], inputs[2] + inputs[2], inputs[3]}, t)
-	testInstruction(0x8B, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[2]}, t)
+	testInstruction(0x0088, inputs, [4]uint16{inputs[0] + inputs[2], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x0089, inputs, [4]uint16{inputs[0], inputs[1] + inputs[2], inputs[2], inputs[3]}, t)
+	testInstruction(0x008A, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] + inputs[2], inputs[3]}, t)
+	testInstruction(0x008B, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[2]}, t)
 
-	testInstruction(0x8C, inputs, [4]byte{inputs[0] + inputs[3], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0x8D, inputs, [4]byte{inputs[0], inputs[1] + inputs[3], inputs[2], inputs[3]}, t)
-	testInstruction(0x8E, inputs, [4]byte{inputs[0], inputs[1], inputs[2] + inputs[3], inputs[3]}, t)
-	testInstruction(0x8F, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[3]}, t)
+	testInstruction(0x008C, inputs, [4]uint16{inputs[0] + inputs[3], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x008D, inputs, [4]uint16{inputs[0], inputs[1] + inputs[3], inputs[2], inputs[3]}, t)
+	testInstruction(0x008E, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] + inputs[3], inputs[3]}, t)
+	testInstruction(0x008F, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] + inputs[3]}, t)
 }
 
 func TestALUAddWithCarry(t *testing.T) {
+	ClearMem()
 	testALUAddWithCarry(
-		0x80,
-		[4]byte{0xFE, 0x00, 0x00, 0x00},
-		[4]byte{0x01, 0x00, 0x00, 0x00},
+		0x0080,
+		[4]uint16{0xFFFE, 0x0000, 0x0000, 0x0000},
+		[4]uint16{0x0001, 0x0000, 0x0000, 0x0000},
 		t,
 	)
 
 	testALUAddWithCarry(
-		0x81,
-		[4]byte{0xFE, 0x05, 0x00, 0x00},
-		[4]byte{0x00, 0x01, 0x00, 0x00},
+		0x0081,
+		[4]uint16{0xFFFE, 0x0005, 0x0000, 0x0000},
+		[4]uint16{0x0000, 0x0001, 0x0000, 0x0000},
 		t,
 	)
 
 	testALUAddWithCarry(
-		0x82,
-		[4]byte{0xFE, 0x00, 0x05, 0x00},
-		[4]byte{0x00, 0x00, 0x01, 0x00},
+		0x0082,
+		[4]uint16{0xFFFE, 0x0000, 0x0005, 0x0000},
+		[4]uint16{0x0000, 0x0000, 0x0001, 0x0000},
 		t,
 	)
 
 	testALUAddWithCarry(
-		0x83,
-		[4]byte{0xFE, 0x00, 0x00, 0x05},
-		[4]byte{0x00, 0x00, 0x00, 0x01},
+		0x0083,
+		[4]uint16{0xFFFE, 0x0000, 0x0000, 0x0005},
+		[4]uint16{0x0000, 0x0000, 0x0000, 0x0001},
 		t,
 	)
 }
 
-func testALUAddWithCarry(instruction byte, inputRegisters, expectedOutputRegisters [4]byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+func testALUAddWithCarry(instruction uint16, inputRegisters, expectedOutputRegisters [4]uint16, t *testing.T) {
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, instruction)
-	setMemoryLocation(c, 0x01, instruction)
+	setMemoryLocation(c, 0x0000, instruction)
+	setMemoryLocation(c, 0x0001, instruction)
 
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
 	setRegisters(c, inputRegisters)
 	doFetchDecodeExecute(c)
-	setRegisters(c, [4]byte{0x00, 0x00, 0x00, 0x00}) // zeros so that we can see the carry flag cause a change
+	setRegisters(c, [4]uint16{0x0000, 0x0000, 0x0000, 0x0000}) // zeros so that we can see the carry flag cause a change
 	doFetchDecodeExecute(c)
 
 	checkRegisters(c, expectedOutputRegisters[0], expectedOutputRegisters[1], expectedOutputRegisters[2], expectedOutputRegisters[3], t)
 }
 
 func TestALUNOT(t *testing.T) {
-	var inputs [4]byte = [4]byte{0xFF, 0xFE, 0xFD, 0xFC}
-
-	testInstruction(0xB0, inputs, [4]byte{0x00, 0xFE, 0xFD, 0xFC}, t)
-	testInstruction(0xB5, inputs, [4]byte{0xFF, 0x01, 0xFD, 0xFC}, t)
-	testInstruction(0xBA, inputs, [4]byte{0xFF, 0xFE, 0x02, 0xFC}, t)
-	testInstruction(0xBF, inputs, [4]byte{0xFF, 0xFE, 0xFD, 0x03}, t)
+	ClearMem()
+	var inputs [4]uint16 = [4]uint16{0xFFFF, 0xFEFE, 0xFDFD, 0xFCFC}
+	testInstruction(0x00B0, inputs, [4]uint16{0x0000, 0xFEFE, 0xFDFD, 0xFCFC}, t)
+	testInstruction(0x00B5, inputs, [4]uint16{0xFFFF, 0x0101, 0xFDFD, 0xFCFC}, t)
+	testInstruction(0x00BA, inputs, [4]uint16{0xFFFF, 0xFEFE, 0x0202, 0xFCFC}, t)
+	testInstruction(0x00BF, inputs, [4]uint16{0xFFFF, 0xFEFE, 0xFDFD, 0x0303}, t)
 }
 
 func TestALUAND(t *testing.T) {
-	var inputs [4]byte = [4]byte{0x02, 0x03, 0x04, 0x05}
+	ClearMem()
+	var inputs [4]uint16 = [4]uint16{0x0002, 0xABC3, 0x0004, 0x0005}
+	testInstruction(0x00C0, inputs, [4]uint16{inputs[0] & inputs[0], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00C1, inputs, [4]uint16{inputs[0], inputs[1] & inputs[0], inputs[2], inputs[3]}, t)
+	testInstruction(0x00C2, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] & inputs[0], inputs[3]}, t)
+	testInstruction(0x00C3, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[0]}, t)
 
-	testInstruction(0xC0, inputs, [4]byte{inputs[0] & inputs[0], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xC1, inputs, [4]byte{inputs[0], inputs[1] & inputs[0], inputs[2], inputs[3]}, t)
-	testInstruction(0xC2, inputs, [4]byte{inputs[0], inputs[1], inputs[2] & inputs[0], inputs[3]}, t)
-	testInstruction(0xC3, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[0]}, t)
+	testInstruction(0x00C4, inputs, [4]uint16{inputs[0] & inputs[1], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00C5, inputs, [4]uint16{inputs[0], inputs[1] & inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00C6, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] & inputs[1], inputs[3]}, t)
+	testInstruction(0x00C7, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[1]}, t)
 
-	testInstruction(0xC4, inputs, [4]byte{inputs[0] & inputs[1], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xC5, inputs, [4]byte{inputs[0], inputs[1] & inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xC6, inputs, [4]byte{inputs[0], inputs[1], inputs[2] & inputs[1], inputs[3]}, t)
-	testInstruction(0xC7, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[1]}, t)
+	testInstruction(0x00C8, inputs, [4]uint16{inputs[0] & inputs[2], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00C9, inputs, [4]uint16{inputs[0], inputs[1] & inputs[2], inputs[2], inputs[3]}, t)
+	testInstruction(0x00CA, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] & inputs[2], inputs[3]}, t)
+	testInstruction(0x00CB, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[2]}, t)
 
-	testInstruction(0xC8, inputs, [4]byte{inputs[0] & inputs[2], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xC9, inputs, [4]byte{inputs[0], inputs[1] & inputs[2], inputs[2], inputs[3]}, t)
-	testInstruction(0xCA, inputs, [4]byte{inputs[0], inputs[1], inputs[2] & inputs[2], inputs[3]}, t)
-	testInstruction(0xCB, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[2]}, t)
-
-	testInstruction(0xCC, inputs, [4]byte{inputs[0] & inputs[3], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xCD, inputs, [4]byte{inputs[0], inputs[1] & inputs[3], inputs[2], inputs[3]}, t)
-	testInstruction(0xCE, inputs, [4]byte{inputs[0], inputs[1], inputs[2] & inputs[3], inputs[3]}, t)
-	testInstruction(0xCF, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[3]}, t)
+	testInstruction(0x00CC, inputs, [4]uint16{inputs[0] & inputs[3], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00CD, inputs, [4]uint16{inputs[0], inputs[1] & inputs[3], inputs[2], inputs[3]}, t)
+	testInstruction(0x00CE, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] & inputs[3], inputs[3]}, t)
+	testInstruction(0x00CF, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] & inputs[3]}, t)
 }
 
 func TestALUOR(t *testing.T) {
-	var inputs [4]byte = [4]byte{0x92, 0x91, 0x45, 0xAF}
+	ClearMem()
+	var inputs [4]uint16 = [4]uint16{0x2092, 0x0091, 0xCF45, 0x00AF}
 
-	testInstruction(0xD0, inputs, [4]byte{inputs[0] | inputs[0], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xD1, inputs, [4]byte{inputs[0], inputs[1] | inputs[0], inputs[2], inputs[3]}, t)
-	testInstruction(0xD2, inputs, [4]byte{inputs[0], inputs[1], inputs[2] | inputs[0], inputs[3]}, t)
-	testInstruction(0xD3, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[0]}, t)
+	testInstruction(0x00D0, inputs, [4]uint16{inputs[0] | inputs[0], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00D1, inputs, [4]uint16{inputs[0], inputs[1] | inputs[0], inputs[2], inputs[3]}, t)
+	testInstruction(0x00D2, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] | inputs[0], inputs[3]}, t)
+	testInstruction(0x00D3, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[0]}, t)
 
-	testInstruction(0xD4, inputs, [4]byte{inputs[0] | inputs[1], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xD5, inputs, [4]byte{inputs[0], inputs[1] | inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xD6, inputs, [4]byte{inputs[0], inputs[1], inputs[2] | inputs[1], inputs[3]}, t)
-	testInstruction(0xD7, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[1]}, t)
+	testInstruction(0x00D4, inputs, [4]uint16{inputs[0] | inputs[1], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00D5, inputs, [4]uint16{inputs[0], inputs[1] | inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00D6, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] | inputs[1], inputs[3]}, t)
+	testInstruction(0x00D7, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[1]}, t)
 
-	testInstruction(0xD8, inputs, [4]byte{inputs[0] | inputs[2], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xD9, inputs, [4]byte{inputs[0], inputs[1] | inputs[2], inputs[2], inputs[3]}, t)
-	testInstruction(0xDA, inputs, [4]byte{inputs[0], inputs[1], inputs[2] | inputs[2], inputs[3]}, t)
-	testInstruction(0xDB, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[2]}, t)
+	testInstruction(0x00D8, inputs, [4]uint16{inputs[0] | inputs[2], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00D9, inputs, [4]uint16{inputs[0], inputs[1] | inputs[2], inputs[2], inputs[3]}, t)
+	testInstruction(0x00DA, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] | inputs[2], inputs[3]}, t)
+	testInstruction(0x00DB, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[2]}, t)
 
-	testInstruction(0xDC, inputs, [4]byte{inputs[0] | inputs[3], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xDD, inputs, [4]byte{inputs[0], inputs[1] | inputs[3], inputs[2], inputs[3]}, t)
-	testInstruction(0xDE, inputs, [4]byte{inputs[0], inputs[1], inputs[2] | inputs[3], inputs[3]}, t)
-	testInstruction(0xDF, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[3]}, t)
+	testInstruction(0x00DC, inputs, [4]uint16{inputs[0] | inputs[3], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00DD, inputs, [4]uint16{inputs[0], inputs[1] | inputs[3], inputs[2], inputs[3]}, t)
+	testInstruction(0x00DE, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] | inputs[3], inputs[3]}, t)
+	testInstruction(0x00DF, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] | inputs[3]}, t)
 }
 
 func TestALUXOR(t *testing.T) {
-	var inputs [4]byte = [4]byte{0x92, 0x91, 0x45, 0xAF}
-	testInstruction(0xE0, inputs, [4]byte{inputs[0] ^ inputs[0], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xE1, inputs, [4]byte{inputs[0], inputs[1] ^ inputs[0], inputs[2], inputs[3]}, t)
-	testInstruction(0xE2, inputs, [4]byte{inputs[0], inputs[1], inputs[2] ^ inputs[0], inputs[3]}, t)
-	testInstruction(0xE3, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[0]}, t)
+	ClearMem()
+	var inputs [4]uint16 = [4]uint16{0x0092, 0x8791, 0x0045, 0xD1AF}
 
-	testInstruction(0xE4, inputs, [4]byte{inputs[0] ^ inputs[1], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xE5, inputs, [4]byte{inputs[0], inputs[1] ^ inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xE6, inputs, [4]byte{inputs[0], inputs[1], inputs[2] ^ inputs[1], inputs[3]}, t)
-	testInstruction(0xE7, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[1]}, t)
+	testInstruction(0x00E0, inputs, [4]uint16{inputs[0] ^ inputs[0], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00E1, inputs, [4]uint16{inputs[0], inputs[1] ^ inputs[0], inputs[2], inputs[3]}, t)
+	testInstruction(0x00E2, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] ^ inputs[0], inputs[3]}, t)
+	testInstruction(0x00E3, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[0]}, t)
 
-	testInstruction(0xE8, inputs, [4]byte{inputs[0] ^ inputs[2], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xE9, inputs, [4]byte{inputs[0], inputs[1] ^ inputs[2], inputs[2], inputs[3]}, t)
-	testInstruction(0xEA, inputs, [4]byte{inputs[0], inputs[1], inputs[2] ^ inputs[2], inputs[3]}, t)
-	testInstruction(0xEB, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[2]}, t)
+	testInstruction(0x00E4, inputs, [4]uint16{inputs[0] ^ inputs[1], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00E5, inputs, [4]uint16{inputs[0], inputs[1] ^ inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00E6, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] ^ inputs[1], inputs[3]}, t)
+	testInstruction(0x00E7, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[1]}, t)
 
-	testInstruction(0xEC, inputs, [4]byte{inputs[0] ^ inputs[3], inputs[1], inputs[2], inputs[3]}, t)
-	testInstruction(0xED, inputs, [4]byte{inputs[0], inputs[1] ^ inputs[3], inputs[2], inputs[3]}, t)
-	testInstruction(0xEE, inputs, [4]byte{inputs[0], inputs[1], inputs[2] ^ inputs[3], inputs[3]}, t)
-	testInstruction(0xEF, inputs, [4]byte{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[3]}, t)
+	testInstruction(0x00E8, inputs, [4]uint16{inputs[0] ^ inputs[2], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00E9, inputs, [4]uint16{inputs[0], inputs[1] ^ inputs[2], inputs[2], inputs[3]}, t)
+	testInstruction(0x00EA, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] ^ inputs[2], inputs[3]}, t)
+	testInstruction(0x00EB, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[2]}, t)
+
+	testInstruction(0x00EC, inputs, [4]uint16{inputs[0] ^ inputs[3], inputs[1], inputs[2], inputs[3]}, t)
+	testInstruction(0x00ED, inputs, [4]uint16{inputs[0], inputs[1] ^ inputs[3], inputs[2], inputs[3]}, t)
+	testInstruction(0x00EE, inputs, [4]uint16{inputs[0], inputs[1], inputs[2] ^ inputs[3], inputs[3]}, t)
+	testInstruction(0x00EF, inputs, [4]uint16{inputs[0], inputs[1], inputs[2], inputs[3] ^ inputs[3]}, t)
 }
 
 func TestCMP(t *testing.T) {
-	var inputs [4]byte = [4]byte{0x92, 0x91, 0x45, 0xAF}
+	ClearMem()
+	var inputs [4]uint16 = [4]uint16{0xAB92, 0x0091, 0x0045, 0x00AF}
 
-	var instruction byte = 0xF0
+	var instruction uint16 = 0x00F0
 	for a := 0; a < 4; a++ {
 		for b := 0; b < 4; b++ {
 			testCMP(instruction, inputs, inputs, a, b, t)
@@ -760,8 +777,8 @@ func TestCMP(t *testing.T) {
 		}
 	}
 
-	var zeroes [4]byte = [4]byte{0x00, 0x00, 0x00, 0x00}
-	instruction = 0xF0
+	var zeroes [4]uint16 = [4]uint16{0x0000, 0x0000, 0x0000, 0x0000}
+	instruction = 0x00F0
 	for a := 0; a < 4; a++ {
 		for b := 0; b < 4; b++ {
 			testCMP(instruction, zeroes, zeroes, a, b, t)
@@ -770,18 +787,16 @@ func TestCMP(t *testing.T) {
 	}
 }
 
-func testCMP(instruction byte, inputRegisters [4]byte, expectedOutputRegisters [4]byte, compareA, compareB int, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+func testCMP(instruction uint16, inputRegisters [4]uint16, expectedOutputRegisters [4]uint16, compareA, compareB int, t *testing.T) {
+	c := SetUpCPU()
 
-	setMemoryLocation(c, 0x00, instruction)
+	setMemoryLocation(c, 0x0000, instruction)
 
 	for i, r := range inputRegisters {
 		setRegister(c, i, r)
 	}
 
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -789,18 +804,15 @@ func testCMP(instruction byte, inputRegisters [4]byte, expectedOutputRegisters [
 	checkFlagsRegister(c, false, inputRegisters[compareA] > inputRegisters[compareB], inputRegisters[compareA] == inputRegisters[compareB], false, t)
 }
 
-func testInstruction(instruction byte, inputRegisters [4]byte, expectedOutputRegisters [4]byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-
-	setMemoryLocation(c, 0x00, instruction)
+func testInstruction(instruction uint16, inputRegisters [4]uint16, expectedOutputRegisters [4]uint16, t *testing.T) {
+	c := SetUpCPU()
+	setMemoryLocation(c, 0x0000, instruction)
 
 	for i, r := range inputRegisters {
 		setRegister(c, i, r)
 	}
 
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -808,33 +820,32 @@ func testInstruction(instruction byte, inputRegisters [4]byte, expectedOutputReg
 }
 
 func TestALUShiftLeft(t *testing.T) {
-	var ones [4]byte = [4]byte{0x01, 0x01, 0x01, 0x01}
-	var shifts byte
-	for shifts = 0; shifts < 8; shifts++ {
-		testShift(0xA0, ones, [4]byte{1 << shifts, 0x01, 0x01, 0x01}, shifts, t)
-		testShift(0xA5, ones, [4]byte{0x01, 1 << shifts, 0x01, 0x01}, shifts, t)
-		testShift(0xAA, ones, [4]byte{0x01, 0x01, 1 << shifts, 0x01}, shifts, t)
-		testShift(0xAF, ones, [4]byte{0x01, 0x01, 0x01, 1 << shifts}, shifts, t)
+	ClearMem()
+	var ones [4]uint16 = [4]uint16{0x0001, 0x0001, 0x0001, 0x0001}
+	var shifts uint16
+	for shifts = 0; shifts < 16; shifts++ {
+		testShift(0x00A0, ones, [4]uint16{1 << shifts, 0x0001, 0x0001, 0x0001}, shifts, t)
+		testShift(0x00A5, ones, [4]uint16{0x0001, 1 << shifts, 0x0001, 0x0001}, shifts, t)
+		testShift(0x00AA, ones, [4]uint16{0x0001, 0x0001, 1 << shifts, 0x0001}, shifts, t)
+		testShift(0x00AF, ones, [4]uint16{0x0001, 0x0001, 0x0001, 1 << shifts}, shifts, t)
 	}
 }
 
 func TestALUShiftRight(t *testing.T) {
-	var input [4]byte = [4]byte{0x80, 0x80, 0x80, 0x80}
-	var shifts byte
-	for shifts = 0; shifts < 8; shifts++ {
-		testShift(0x90, input, [4]byte{0x80 >> shifts, 0x80, 0x80, 0x80}, shifts, t)
-		testShift(0x95, input, [4]byte{0x80, 0x80 >> shifts, 0x80, 0x80}, shifts, t)
-		testShift(0x9A, input, [4]byte{0x80, 0x80, 0x80 >> shifts, 0x80}, shifts, t)
-		testShift(0x9F, input, [4]byte{0x80, 0x80, 0x80, 0x80 >> shifts}, shifts, t)
+	var input [4]uint16 = [4]uint16{0x8000, 0x8000, 0x8000, 0x8000}
+	var shifts uint16
+	for shifts = 0; shifts < 16; shifts++ {
+		testShift(0x0090, input, [4]uint16{0x8000 >> shifts, 0x8000, 0x8000, 0x8000}, shifts, t)
+		testShift(0x0095, input, [4]uint16{0x8000, 0x8000 >> shifts, 0x8000, 0x8000}, shifts, t)
+		testShift(0x009A, input, [4]uint16{0x8000, 0x8000, 0x8000 >> shifts, 0x8000}, shifts, t)
+		testShift(0x009F, input, [4]uint16{0x8000, 0x8000, 0x8000, 0x8000 >> shifts}, shifts, t)
 	}
 }
 
-func testShift(instruction byte, inputRegisters [4]byte, expectedOutputRegisters [4]byte, shifts byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
+func testShift(instruction uint16, inputRegisters [4]uint16, expectedOutputRegisters [4]uint16, shifts uint16, t *testing.T) {
+	c := SetUpCPU()
 
-	var i byte
+	var i uint16
 	for i = 0; i < shifts; i++ {
 		setMemoryLocation(c, i, instruction)
 	}
@@ -843,13 +854,226 @@ func testShift(instruction byte, inputRegisters [4]byte, expectedOutputRegisters
 		setRegister(c, i, r)
 	}
 
-	setIAR(c, 0x00)
+	setIAR(c, 0x0000)
 
 	for i = 0; i < shifts; i++ {
 		doFetchDecodeExecute(c)
 	}
 
 	checkRegisters(c, expectedOutputRegisters[0], expectedOutputRegisters[1], expectedOutputRegisters[2], expectedOutputRegisters[3], t)
+}
+
+func TestSubtract(t *testing.T) {
+	ClearMem()
+	testSubtract(0, 0, t)
+	testSubtract(1, 0, t)
+	testSubtract(37, 21, t)
+	testSubtract(0x00FF, 0x00FF, t)
+	testSubtract(10, 3, t)
+	testSubtract(100, 99, t)
+}
+
+func testSubtract(inputA, inputB uint16, t *testing.T) {
+	c := SetUpCPU()
+
+	setRegisters(c, [4]uint16{inputA, inputB, 1, 0})
+	setMemoryLocation(c, 0x0000, 0x00B5) // NOT
+	setMemoryLocation(c, 0x0001, 0x0089) // ADD R2, R1
+	setMemoryLocation(c, 0x0002, 0x0060) // CLF
+	setMemoryLocation(c, 0x0003, 0x0081) // ADD R0, R1
+
+	setIAR(c, 0x0000)
+
+	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
+	doFetchDecodeExecute(c)
+
+	checkRegister(c, 1, inputA-inputB, t)
+}
+
+func TestMultiply(t *testing.T) {
+	ClearMem()
+	testMultiply(0, 0, t)
+	testMultiply(1, 1, t)
+	testMultiply(1, 2, t)
+	testMultiply(2, 1, t)
+	testMultiply(5, 5, t)
+	testMultiply(8, 12, t)
+	testMultiply(19, 13, t)
+}
+
+func testMultiply(inputA, inputB uint16, t *testing.T) {
+	c := SetUpCPU()
+
+	setMemoryLocation(c, 50, 0x0023) // DATA R3
+	setMemoryLocation(c, 51, 0x0001) // .. 1
+	setMemoryLocation(c, 52, 0x00EA) // XOR R2, R2
+	setMemoryLocation(c, 53, 0x0060) // CLF
+	setMemoryLocation(c, 54, 0x0090) // SHR R0
+	setMemoryLocation(c, 55, 0x0058) // JC
+	setMemoryLocation(c, 56, 59)     // ...addr 59
+	setMemoryLocation(c, 57, 0x0040) // JMP
+	setMemoryLocation(c, 58, 61)     // ...addr 61
+	setMemoryLocation(c, 59, 0x0060) // CLF
+	setMemoryLocation(c, 60, 0x0086) // ADD R1, R2
+	setMemoryLocation(c, 61, 0x0060) // CLF
+	setMemoryLocation(c, 62, 0x00A5) // SHL R1
+	setMemoryLocation(c, 63, 0x00AF) // SHL R3
+	setMemoryLocation(c, 64, 0x0058) // JC
+	setMemoryLocation(c, 65, 68)     // ...addr 68
+	setMemoryLocation(c, 66, 0x0040) // JMP
+	setMemoryLocation(c, 67, 53)     // ...addr 53
+
+	setRegisters(c, [4]uint16{inputA, inputB, 0, 0})
+
+	setIAR(c, 50)
+
+	for {
+		doFetchDecodeExecute(c)
+		if c.iar.Value() >= 68 {
+			break
+		}
+	}
+
+	checkRegister(c, 2, inputA*inputB, t)
+}
+
+func TestIOInputInstruction(t *testing.T) {
+	ClearMem()
+	// IN Data, RB
+	zeros := [4]uint16{0, 0, 0, 0}
+	testIOInputInstruction(0x0070, zeros, [4]uint16{0x00DA, 0x0000, 0x0000, 0x0000}, t)
+	testIOInputInstruction(0x0071, zeros, [4]uint16{0x0000, 0x00DA, 0x0000, 0x0000}, t)
+	testIOInputInstruction(0x0072, zeros, [4]uint16{0x0000, 0x0000, 0x00DA, 0x0000}, t)
+	testIOInputInstruction(0x0073, zeros, [4]uint16{0x0000, 0x0000, 0x0000, 0x00DA}, t)
+	// IN Addr, RB
+	testIOInputInstruction(0x0074, zeros, [4]uint16{0x00AD, 0x0000, 0x0000, 0x0000}, t)
+	testIOInputInstruction(0x0075, zeros, [4]uint16{0x0000, 0x00AD, 0x0000, 0x0000}, t)
+	testIOInputInstruction(0x0076, zeros, [4]uint16{0x0000, 0x0000, 0x00AD, 0x0000}, t)
+	testIOInputInstruction(0x0077, zeros, [4]uint16{0x0000, 0x0000, 0x0000, 0x00AD}, t)
+}
+
+func testIOInputInstruction(instruction uint16, inputRegisters, expectedRegisters [4]uint16, t *testing.T) {
+	c := SetUpCPU()
+	c.ConnectPeripheral(NewDumbPeripheral())
+
+	setMemoryLocation(c, 0x0000, instruction)
+	setRegisters(c, inputRegisters)
+
+	setIAR(c, 0x0000)
+
+	doFetchDecodeExecute(c)
+
+	checkRegisters(c, expectedRegisters[0], expectedRegisters[1], expectedRegisters[2], expectedRegisters[3], t)
+}
+
+// should put a value in the peripheral register, and set the address/data flag on the peripheral
+func TestIOOutputInstruction(t *testing.T) {
+	ClearMem()
+	// OUT Data, RB
+	testIOOutputInstruction(0x0078, [4]uint16{0x00DD, 0x0008, 0x0007, 0x0006}, 0x00DD, true, false, t)
+	testIOOutputInstruction(0x0079, [4]uint16{0x0009, 0x00DD, 0x0007, 0x0006}, 0x00DD, true, false, t)
+	testIOOutputInstruction(0x007A, [4]uint16{0x0009, 0x0008, 0x00DD, 0x0006}, 0x00DD, true, false, t)
+	testIOOutputInstruction(0x007B, [4]uint16{0x0009, 0x0008, 0x0007, 0x00DD}, 0x00DD, true, false, t)
+
+	// OUT Addr, RB
+	testIOOutputInstruction(0x007C, [4]uint16{0x00AA, 0x0008, 0x0007, 0x0006}, 0x00AA, false, true, t)
+	testIOOutputInstruction(0x007D, [4]uint16{0x0009, 0x00AA, 0x0007, 0x0006}, 0x00AA, false, true, t)
+	testIOOutputInstruction(0x007E, [4]uint16{0x0009, 0x0008, 0x00AA, 0x0006}, 0x00AA, false, true, t)
+	testIOOutputInstruction(0x007F, [4]uint16{0x0009, 0x0008, 0x0007, 0x00AA}, 0x00AA, false, true, t)
+}
+
+func testIOOutputInstruction(instruction uint16, inputRegisters [4]uint16, expectedPeripheralValue uint16, expectedDataMode, expectedAddressMode bool, t *testing.T) {
+	c := SetUpCPU()
+	peripheral := NewDumbPeripheral()
+	c.ConnectPeripheral(peripheral)
+
+	setMemoryLocation(c, 0x0000, instruction)
+	setRegisters(c, inputRegisters)
+
+	setIAR(c, 0x0000)
+
+	doFetchDecodeExecute(c)
+
+	if peripheral.value.Value() != expectedPeripheralValue {
+		t.FailNow()
+	}
+
+	if peripheral.outputDataMode != expectedDataMode {
+		t.FailNow()
+	}
+
+	if peripheral.outputAddressMode != expectedAddressMode {
+		t.FailNow()
+	}
+}
+
+// Dumb peripheral that just contains a register
+// In 'ENABLE' state:
+//     emits the values 0x00DA for data mode, and 0x00AD for address mode
+// In SET state:
+//    sets the flags outputDataMode and outputAddressMode based on the data/address value on the bus
+type DumbPeripheral struct {
+	ioBus   *components.IOBus
+	mainBus *components.Bus
+
+	value             components.Register
+	outputDataMode    bool
+	outputAddressMode bool
+}
+
+func NewDumbPeripheral() *DumbPeripheral {
+	p := new(DumbPeripheral)
+	return p
+}
+
+func (p *DumbPeripheral) Connect(ioBus *components.IOBus, mainBus *components.Bus) {
+	p.ioBus = ioBus
+	p.mainBus = mainBus
+	p.value = *components.NewRegister("P", p.mainBus, p.mainBus)
+
+}
+
+func (p *DumbPeripheral) Update() {
+	p.updateEnabled()
+	p.value.Update()
+	p.updateSet()
+	p.value.Update()
+}
+
+func (p *DumbPeripheral) refreshValue(addressValue, dataValue uint16) {
+	p.value.Set()
+	p.value.Update()
+
+	if p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) {
+		//address mode
+		setBus(p.mainBus, addressValue)
+	} else {
+		setBus(p.mainBus, dataValue)
+	}
+	p.value.Update()
+	p.value.Unset()
+	p.value.Update()
+}
+
+func (p *DumbPeripheral) updateEnabled() {
+	if p.ioBus.GetOutputWire(components.CLOCK_ENABLE) {
+		p.refreshValue(0x00AD, 0x00DA)
+		p.value.Enable()
+	} else {
+		p.value.Disable()
+	}
+}
+
+func (p *DumbPeripheral) updateSet() {
+	if p.ioBus.GetOutputWire(components.CLOCK_SET) {
+		p.outputDataMode = (p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) == false)
+		p.outputAddressMode = (p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) == true)
+		p.value.Set()
+	} else {
+		p.value.Unset()
+	}
 }
 
 func doFetchDecodeExecute(c *CPU) {
@@ -860,7 +1084,7 @@ func doFetchDecodeExecute(c *CPU) {
 
 }
 
-func setIAR(c *CPU, value byte) {
+func setIAR(c *CPU, value uint16) {
 	setBus(c.mainBus, value)
 
 	c.iar.Set()
@@ -869,7 +1093,7 @@ func setIAR(c *CPU, value byte) {
 	c.iar.Update()
 }
 
-func setMemoryLocation(c *CPU, address byte, value byte) {
+func setMemoryLocation(c *CPU, address uint16, value uint16) {
 	c.memory.AddressRegister.Set()
 	setBus(c.mainBus, address)
 	c.memory.Update()
@@ -885,7 +1109,23 @@ func setMemoryLocation(c *CPU, address byte, value byte) {
 	c.memory.Update()
 }
 
-func setRegister(c *CPU, register int, value byte) {
+func setMemoryLocation2(m *memory.Memory64K, address uint16, value uint16) {
+	m.AddressRegister.Set()
+	setBus(BUS, address)
+	m.Update()
+
+	m.AddressRegister.Unset()
+	m.Update()
+
+	setBus(BUS, value)
+	m.Set()
+	m.Update()
+
+	m.Unset()
+	m.Update()
+}
+
+func setRegister(c *CPU, register int, value uint16) {
 	switch register {
 	case 0:
 		c.gpReg0.Set()
@@ -918,14 +1158,14 @@ func setRegister(c *CPU, register int, value byte) {
 	}
 }
 
-func checkIAR(c *CPU, expValue byte, t *testing.T) {
+func checkIAR(c *CPU, expValue uint16, t *testing.T) {
 	if c.iar.Value() != expValue {
 		t.Logf("Expected IAR to have value of: %X but got %X", expValue, c.iar.Value())
 		t.FailNow()
 	}
 }
 
-func checkIR(c *CPU, expValue byte, t *testing.T) {
+func checkIR(c *CPU, expValue uint16, t *testing.T) {
 	if c.ir.Value() != expValue {
 		t.Logf("Expected IR to have value of: %X but got %X", expValue, c.ir.Value())
 		t.FailNow()
@@ -951,8 +1191,8 @@ func checkFlagsRegister(c *CPU, expectedCarry, expectedIsLarger, expectedIsEqual
 	}
 }
 
-func checkRegister(c *CPU, register int, expectedValue byte, t *testing.T) {
-	var regValue byte
+func checkRegister(c *CPU, register int, expectedValue uint16, t *testing.T) {
+	var regValue uint16
 	switch register {
 	case 0:
 		regValue = c.gpReg0.Value()
@@ -973,23 +1213,23 @@ func checkRegister(c *CPU, register int, expectedValue byte, t *testing.T) {
 	}
 }
 
-func checkRegisters(c *CPU, expReg0, expReg1, expReg2, expReg3 byte, t *testing.T) {
+func checkRegisters(c *CPU, expReg0, expReg1, expReg2, expReg3 uint16, t *testing.T) {
 	checkRegister(c, 0, expReg0, t)
 	checkRegister(c, 1, expReg1, t)
 	checkRegister(c, 2, expReg2, t)
 	checkRegister(c, 3, expReg3, t)
 }
 
-func setRegisters(c *CPU, values [4]byte) {
+func setRegisters(c *CPU, values [4]uint16) {
 	for i, v := range values {
 		setRegister(c, i, v)
 	}
 }
 
-func setBus(b *components.Bus, value byte) {
+func setBus(b *components.Bus, value uint16) {
 	var x = 0
-	for i := 7; i >= 0; i-- {
-		r := (value & (1 << byte(x)))
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
+		r := (value & (1 << uint16(x)))
 		if r != 0 {
 			b.SetInputWire(i, true)
 		} else {
@@ -997,222 +1237,5 @@ func setBus(b *components.Bus, value byte) {
 		}
 
 		x++
-	}
-}
-
-func TestSubtract(t *testing.T) {
-	testSubtract(0, 0, t)
-	testSubtract(1, 0, t)
-	testSubtract(37, 21, t)
-	testSubtract(0xFF, 0xFF, t)
-	testSubtract(10, 3, t)
-	testSubtract(100, 99, t)
-}
-
-func testSubtract(inputA, inputB byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-
-	setRegisters(c, [4]byte{inputA, inputB, 1, 0})
-	setMemoryLocation(c, 0x00, 0xB5) // NOT
-	setMemoryLocation(c, 0x01, 0x89) // ADD R2, R1
-	setMemoryLocation(c, 0x02, 0x60) // CLF
-	setMemoryLocation(c, 0x03, 0x81) // ADD R0, R1
-
-	setIAR(c, 0x00)
-
-	doFetchDecodeExecute(c)
-	doFetchDecodeExecute(c)
-	doFetchDecodeExecute(c)
-	doFetchDecodeExecute(c)
-
-	checkRegister(c, 1, inputA-inputB, t)
-}
-
-func TestMultiply(t *testing.T) {
-	testMultiply(0, 0, t)
-	testMultiply(1, 1, t)
-	testMultiply(1, 2, t)
-	testMultiply(2, 1, t)
-	testMultiply(5, 5, t)
-	testMultiply(8, 12, t)
-	testMultiply(19, 13, t)
-}
-
-func testMultiply(inputA, inputB byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-
-	setMemoryLocation(c, 50, 0x23) // DATA R3
-	setMemoryLocation(c, 51, 0x01) // .. 1
-	setMemoryLocation(c, 52, 0xEA) // XOR R2, R2
-	setMemoryLocation(c, 53, 0x60) // CLF
-	setMemoryLocation(c, 54, 0x90) // SHR R0
-	setMemoryLocation(c, 55, 0x58) // JC
-	setMemoryLocation(c, 56, 59)   // ...addr 59
-	setMemoryLocation(c, 57, 0x40) // JMP
-	setMemoryLocation(c, 58, 61)   // ...addr 61
-	setMemoryLocation(c, 59, 0x60) // CLF
-	setMemoryLocation(c, 60, 0x86) // ADD R1, R2
-	setMemoryLocation(c, 61, 0x60) // CLF
-	setMemoryLocation(c, 62, 0xA5) // SHL R1
-	setMemoryLocation(c, 63, 0xAF) // SHL R3
-	setMemoryLocation(c, 64, 0x58) // JC
-	setMemoryLocation(c, 65, 68)   // ...addr 68
-	setMemoryLocation(c, 66, 0x40) // JMP
-	setMemoryLocation(c, 67, 53)   // ...addr 53
-
-	setRegisters(c, [4]byte{inputA, inputB, 0, 0})
-
-	setIAR(c, 50)
-
-	for {
-		doFetchDecodeExecute(c)
-		if c.iar.Value() >= 68 {
-			break
-		}
-	}
-
-	checkRegister(c, 2, inputA*inputB, t)
-}
-
-func TestIOInputInstruction(t *testing.T) {
-	// IN Data, RB
-	zeros := [4]byte{0, 0, 0, 0}
-	testIOInputInstruction(0x70, zeros, [4]byte{0xDA, 0x00, 0x00, 0x00}, t)
-	testIOInputInstruction(0x71, zeros, [4]byte{0x00, 0xDA, 0x00, 0x00}, t)
-	testIOInputInstruction(0x72, zeros, [4]byte{0x00, 0x00, 0xDA, 0x00}, t)
-	testIOInputInstruction(0x73, zeros, [4]byte{0x00, 0x00, 0x00, 0xDA}, t)
-	// IN Addr, RB
-	testIOInputInstruction(0x74, zeros, [4]byte{0xAD, 0x00, 0x00, 0x00}, t)
-	testIOInputInstruction(0x75, zeros, [4]byte{0x00, 0xAD, 0x00, 0x00}, t)
-	testIOInputInstruction(0x76, zeros, [4]byte{0x00, 0x00, 0xAD, 0x00}, t)
-	testIOInputInstruction(0x77, zeros, [4]byte{0x00, 0x00, 0x00, 0xAD}, t)
-}
-
-func testIOInputInstruction(instruction byte, inputRegisters, expectedRegisters [4]byte, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-	c.ConnectPeripheral(NewDumbPeripheral())
-
-	setMemoryLocation(c, 0x00, instruction)
-	setRegisters(c, inputRegisters)
-
-	setIAR(c, 0x00)
-
-	doFetchDecodeExecute(c)
-
-	checkRegisters(c, expectedRegisters[0], expectedRegisters[1], expectedRegisters[2], expectedRegisters[3], t)
-}
-
-// should put a value in the peripheral register, and set the address/data flag on the peripheral
-func TestIOOutputInstruction(t *testing.T) {
-	// OUT Data, RB
-	testIOOutputInstruction(0x78, [4]byte{0xDD, 0x08, 0x07, 0x06}, 0xDD, true, false, t)
-	testIOOutputInstruction(0x79, [4]byte{0x09, 0xDD, 0x07, 0x06}, 0xDD, true, false, t)
-	testIOOutputInstruction(0x7A, [4]byte{0x09, 0x08, 0xDD, 0x06}, 0xDD, true, false, t)
-	testIOOutputInstruction(0x7B, [4]byte{0x09, 0x08, 0x07, 0xDD}, 0xDD, true, false, t)
-
-	// OUT Addr, RB
-	testIOOutputInstruction(0x7C, [4]byte{0xAA, 0x08, 0x07, 0x06}, 0xAA, false, true, t)
-	testIOOutputInstruction(0x7D, [4]byte{0x09, 0xAA, 0x07, 0x06}, 0xAA, false, true, t)
-	testIOOutputInstruction(0x7E, [4]byte{0x09, 0x08, 0xAA, 0x06}, 0xAA, false, true, t)
-	testIOOutputInstruction(0x7F, [4]byte{0x09, 0x08, 0x07, 0xAA}, 0xAA, false, true, t)
-}
-
-func testIOOutputInstruction(instruction byte, inputRegisters [4]byte, expectedPeripheralValue byte, expectedDataMode, expectedAddressMode bool, t *testing.T) {
-	b := components.NewBus()
-	m := memory.NewMemory256(b)
-	c := NewCPU(b, m)
-	peripheral := NewDumbPeripheral()
-	c.ConnectPeripheral(peripheral)
-
-	setMemoryLocation(c, 0x00, instruction)
-	setRegisters(c, inputRegisters)
-
-	setIAR(c, 0x00)
-
-	doFetchDecodeExecute(c)
-
-	if peripheral.value.Value() != expectedPeripheralValue {
-		t.FailNow()
-	}
-
-	if peripheral.outputDataMode != expectedDataMode {
-		t.FailNow()
-	}
-
-	if peripheral.outputAddressMode != expectedAddressMode {
-		t.FailNow()
-	}
-}
-
-// Dumb peripheral that just contains a register
-// In 'ENABLE' state:
-//     emits the values 0xDA for data mode, and 0xAD for address mode
-// In SET state:
-//    sets the flags outputDataMode and outputAddressMode based on the data/address value on the bus
-type DumbPeripheral struct {
-	ioBus   *components.IOBus
-	mainBus *components.Bus
-
-	value             components.Register
-	outputDataMode    bool
-	outputAddressMode bool
-}
-
-func NewDumbPeripheral() *DumbPeripheral {
-	p := new(DumbPeripheral)
-	return p
-}
-
-func (p *DumbPeripheral) Connect(ioBus *components.IOBus, mainBus *components.Bus) {
-	p.ioBus = ioBus
-	p.mainBus = mainBus
-	p.value = *components.NewRegister("P", p.mainBus, p.mainBus)
-
-}
-
-func (p *DumbPeripheral) Update() {
-	p.updateEnabled()
-	p.value.Update()
-	p.updateSet()
-	p.value.Update()
-}
-
-func (p *DumbPeripheral) refreshValue(addressValue, dataValue byte) {
-	p.value.Set()
-	p.value.Update()
-
-	if p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) {
-		//address mode
-		setBus(p.mainBus, addressValue)
-	} else {
-		setBus(p.mainBus, dataValue)
-	}
-	p.value.Update()
-	p.value.Unset()
-	p.value.Update()
-}
-
-func (p *DumbPeripheral) updateEnabled() {
-	if p.ioBus.GetOutputWire(components.CLOCK_ENABLE) {
-		p.refreshValue(0xAD, 0xDA)
-		p.value.Enable()
-	} else {
-		p.value.Disable()
-	}
-}
-
-func (p *DumbPeripheral) updateSet() {
-	if p.ioBus.GetOutputWire(components.CLOCK_SET) {
-		p.outputDataMode = (p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) == false)
-		p.outputAddressMode = (p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) == true)
-		p.value.Set()
-	} else {
-		p.value.Unset()
 	}
 }

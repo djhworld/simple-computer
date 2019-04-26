@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	"github.com/djhworld/simple-computer/circuit"
+	"github.com/djhworld/simple-computer/utils"
 )
 
 type Register struct {
 	name      string
 	set       circuit.Wire
 	enable    circuit.Wire
-	inputs    [8]circuit.Wire
-	byter     *Byte
+	word      *Word
 	enabler   *Enabler
-	outputs   [8]circuit.Wire
+	outputs   [BUS_WIDTH]circuit.Wire
 	inputBus  *Bus
 	outputBus *Bus
 }
@@ -21,18 +21,18 @@ type Register struct {
 func NewRegister(name string, inputBus *Bus, outputBus *Bus) *Register {
 	r := new(Register)
 	r.name = name
-	r.byter = NewByte()
+	r.word = NewWord()
 	r.enabler = NewEnabler()
 	r.enable = *circuit.NewWire("E", false)
 	r.set = *circuit.NewWire("S", false)
 	r.inputBus = inputBus
 	r.outputBus = outputBus
-	r.byter.ConnectOutput(r.enabler)
+	r.word.ConnectOutput(r.enabler)
 	return r
 }
 
 func (r *Register) Bit(index int) bool {
-	return r.byter.GetOutputWire(index)
+	return r.word.GetOutputWire(index)
 }
 
 func (r *Register) Enable() {
@@ -52,40 +52,32 @@ func (r *Register) Unset() {
 }
 
 func (r *Register) Update() {
-	if r.inputBus != nil {
-		//for i := 0; i < 8; i++ {
-		for i := 8 - 1; i >= 0; i-- {
-			r.inputs[i].Update(r.inputBus.GetOutputWire(i))
-		}
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
+		r.word.SetInputWire(i, r.inputBus.GetOutputWire(i))
 	}
 
-	for i, w := range r.inputs {
-		r.byter.SetInputWire(i, w.Get())
-	}
-
-	r.byter.Update(r.set.Get())
+	r.word.Update(r.set.Get())
 	r.enabler.Update(r.enable.Get())
 
-	for i, w := range r.enabler.outputs {
-		r.outputs[i].Update(w.Get())
+	for i := 0; i < len(r.enabler.outputs); i++ {
+		r.outputs[i].Update(r.enabler.outputs[i].Get())
 	}
 
-	if r.enable.Get() && r.outputBus != nil {
-		//for i, w := range r.outputs {
-		for i := 8 - 1; i >= 0; i-- {
+	if r.enable.Get() {
+		for i := BUS_WIDTH - 1; i >= 0; i-- {
 			r.outputBus.SetInputWire(i, r.outputs[i].Get())
 		}
 	}
 }
 
-func (r *Register) Value() byte {
-	var value byte
-	var x int = 0
-	for i := 7; i >= 0; i-- {
-		if r.byter.GetOutputWire(i) {
-			value = value | (1 << byte(x))
+func (r *Register) Value() uint16 {
+	var value uint16
+	var x uint16 = 0
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
+		if r.word.GetOutputWire(i) {
+			value = value | (1 << x)
 		} else {
-			value = value & ^(1 << byte(x))
+			value = value & ^(1 << x)
 		}
 		x++
 	}
@@ -94,16 +86,17 @@ func (r *Register) Value() byte {
 }
 
 func (r *Register) String() string {
-	var output byte
-	var x int = 0
-	for i := 7; i >= 0; i-- {
+	var output uint16
+	var x uint16 = 0
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
 		if r.outputs[i].Get() {
-			output = output | (1 << byte(x))
+			output = output | (1 << x)
 		} else {
-			output = output & ^(1 << byte(x))
+			output = output & ^(1 << x)
 		}
 		x++
 	}
 
-	return fmt.Sprintf("%s: 0x%X (output = 0x%X) E: %v S: %v", r.name, r.Value(), output, r.enable.Get(), r.set.Get())
+	return fmt.Sprintf("%s: %s (output = %s) E: %v S: %v", r.name, utils.ValueToString(r.Value()), utils.ValueToString(output), r.enable.Get(), r.set.Get())
 }
+

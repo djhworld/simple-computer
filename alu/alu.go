@@ -5,6 +5,7 @@ import (
 
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
+	"github.com/djhworld/simple-computer/utils"
 )
 
 const (
@@ -18,14 +19,13 @@ const (
 	CMP
 )
 
+const BUS_WIDTH = 16
+
 type ALU struct {
 	inputABus      *components.Bus
 	inputBBus      *components.Bus
 	outputBus      *components.Bus
 	flagsOutputBus *components.Bus
-
-	inputA [8]circuit.Wire
-	inputB [8]circuit.Wire
 
 	Op      [3]circuit.Wire
 	CarryIn circuit.Wire
@@ -35,8 +35,6 @@ type ALU struct {
 	isEqual   circuit.Wire
 
 	opDecoder components.Decoder3x8
-
-	output [8]circuit.Wire
 
 	comparator  components.Comparator
 	xorer       components.XORer
@@ -111,24 +109,24 @@ func (a *ALU) updateAnder() {
 }
 
 func (a *ALU) updateNotter() {
-	for i := (8 - 1); i >= 0; i-- {
-		a.notter.SetInputWire(i, a.inputA[i].Get())
+	for i := (BUS_WIDTH - 1); i >= 0; i-- {
+		a.notter.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 	a.notter.Update()
 	a.wireToEnabler(&a.notter, 3)
 }
 
 func (a *ALU) updateLeftShifter() {
-	for i := (8 - 1); i >= 0; i-- {
-		a.leftShifer.SetInputWire(i, a.inputA[i].Get())
+	for i := (BUS_WIDTH - 1); i >= 0; i-- {
+		a.leftShifer.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 	a.leftShifer.Update(a.CarryIn.Get())
 	a.wireToEnabler(&a.leftShifer, 2)
 }
 
 func (a *ALU) updateRightShifter() {
-	for i := (8 - 1); i >= 0; i-- {
-		a.rightShifer.SetInputWire(i, a.inputA[i].Get())
+	for i := (BUS_WIDTH - 1); i >= 0; i-- {
+		a.rightShifer.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 	a.rightShifer.Update(a.CarryIn.Get())
 	a.wireToEnabler(&a.rightShifer, 1)
@@ -140,19 +138,19 @@ func (a *ALU) updateAdder() {
 	a.wireToEnabler(&a.adder, 0)
 }
 
-func (a *ALU) wireToEnabler(b components.ByteComponent, enablerIndex int) {
-	for i := 0; i < 8; i++ {
+func (a *ALU) wireToEnabler(b components.Component, enablerIndex int) {
+	for i := 0; i < BUS_WIDTH; i++ {
 		a.enablers[enablerIndex].SetInputWire(i, b.GetOutputWire(i))
 	}
 }
 
-func (a *ALU) setWireOnComponent(b components.ByteComponent) {
-	for i := 8 - 1; i >= 0; i-- {
-		b.SetInputWire(i, a.inputA[i].Get())
+func (a *ALU) setWireOnComponent(b components.Component) {
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
+		b.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 
-	for i := 16 - 1; i >= 8; i-- {
-		b.SetInputWire(i, a.inputB[i-8].Get())
+	for i := (BUS_WIDTH * 2) - 1; i >= BUS_WIDTH; i-- {
+		b.SetInputWire(i, a.inputBBus.GetOutputWire(i-16))
 	}
 }
 
@@ -166,69 +164,66 @@ func (a *ALU) String() string {
 		}
 	}
 
-	var inputA byte
-	var inputB byte
-	var output byte
-	var x int = 0
-	for i := 7; i >= 0; i-- {
-		if a.inputA[i].Get() {
-			inputA = inputA | (1 << byte(x))
+	var inputA uint16
+	var inputB uint16
+	var output uint16
+	var x uint16 = 0
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
+		if a.inputABus.GetOutputWire(i) {
+			inputA = inputA | (1 << x)
 		} else {
-			inputA = inputA & ^(1 << byte(x))
+			inputA = inputA & ^(1 << x)
 		}
 
-		if a.inputB[i].Get() {
-			inputB = inputB | (1 << byte(x))
+		if a.inputBBus.GetOutputWire(i) {
+			inputB = inputB | (1 << x)
 		} else {
-			inputB = inputB & ^(1 << byte(x))
+			inputB = inputB & ^(1 << x)
 		}
 
-		if a.output[i].Get() {
-			output = output | (1 << byte(x))
+		if a.outputBus.GetOutputWire(i) {
+			output = output | (1 << x)
 		} else {
-			output = output & ^(1 << byte(x))
+			output = output & ^(1 << x)
 		}
 		x++
 	}
-	return fmt.Sprintf("ALU OP: %s, A: 0x%X, B: 0x%X, OUT: 0x%X, carryin: %v, carryout: %v, larger: %v, eq: %v, zero: %v", s, inputA, inputB, output, a.CarryIn.Get(), a.flagsOutputBus.GetOutputWire(0), a.flagsOutputBus.GetOutputWire(1), a.flagsOutputBus.GetOutputWire(2), a.flagsOutputBus.GetOutputWire(3))
-}
-
-func (a *ALU) resetOutputs() {
-	a.carryOut.Update(false)
-	a.isZero.Reset()
-	a.aIsLarger.Update(false)
-	a.isEqual.Update(false)
-	for i := 0; i < 8; i++ {
-		a.output[i].Update(false)
-		if i < 7 {
-			a.enablers[i].Update(false)
-		}
-	}
-
-	for i := range a.andGates {
-		a.andGates[i].Update(false, false)
-	}
+	return fmt.Sprintf(
+		"ALU OP: %s, A: %s, B: %s, OUT: %s, carryin: %v, carryout: %v, larger: %v, eq: %v, zero: %v",
+		s,
+		utils.ValueToString(inputA),
+		utils.ValueToString(inputB),
+		utils.ValueToString(output),
+		a.CarryIn.Get(),
+		a.flagsOutputBus.GetOutputWire(0),
+		a.flagsOutputBus.GetOutputWire(1),
+		a.flagsOutputBus.GetOutputWire(2),
+		a.flagsOutputBus.GetOutputWire(3),
+	)
 }
 
 func (a *ALU) Update() {
-	for i := 8 - 1; i >= 0; i-- {
-		a.inputA[i].Update(a.inputABus.GetOutputWire(i))
-		a.inputB[i].Update(a.inputBBus.GetOutputWire(i))
-	}
-
-	a.resetOutputs()
 	a.updateOpDecoder()
+	enabler := a.opDecoder.Index()
 
 	a.updateComparator()
-	a.updateXorer()
-	a.updateOrer()
-	a.updateAnder()
-	a.updateNotter()
-	a.updateLeftShifter()
-	a.updateRightShifter()
-	a.updateAdder()
 
-	enabler := a.opDecoder.Index()
+	switch enabler {
+	case ADD:
+		a.updateAdder()
+	case XOR:
+		a.updateXorer()
+	case OR:
+		a.updateOrer()
+	case AND:
+		a.updateAnder()
+	case NOT:
+		a.updateNotter()
+	case SHL:
+		a.updateLeftShifter()
+	case SHR:
+		a.updateRightShifter()
+	}
 
 	if enabler != CMP {
 		a.enablers[enabler].Update(true)
@@ -245,24 +240,20 @@ func (a *ALU) Update() {
 			a.carryOut.Update(a.andGates[2].Output())
 		}
 
-		for i := 0; i < 8; i++ {
+		for i := 0; i < BUS_WIDTH; i++ {
 			a.isZero.SetInputWire(i, a.enablers[enabler].GetOutputWire(i))
-			a.output[i].Update(a.enablers[enabler].GetOutputWire(i))
+			a.outputBus.SetInputWire(i, a.enablers[enabler].GetOutputWire(i))
 		}
-
-		a.isZero.Update()
+	} else {
+		for i := 0; i < BUS_WIDTH; i++ {
+			a.isZero.SetInputWire(i, true)
+			a.outputBus.SetInputWire(i, false)
+		}
 	}
-
-	for i := 8 - 1; i >= 0; i-- {
-		a.outputBus.SetInputWire(i, a.output[i].Get())
-	}
+	a.isZero.Update()
 
 	a.flagsOutputBus.SetInputWire(0, a.carryOut.Get())
 	a.flagsOutputBus.SetInputWire(1, a.aIsLarger.Get())
 	a.flagsOutputBus.SetInputWire(2, a.isEqual.Get())
 	a.flagsOutputBus.SetInputWire(3, a.isZero.GetOutputWire(0))
-	a.flagsOutputBus.SetInputWire(4, false)
-	a.flagsOutputBus.SetInputWire(5, false)
-	a.flagsOutputBus.SetInputWire(6, false)
-	a.flagsOutputBus.SetInputWire(7, false)
 }

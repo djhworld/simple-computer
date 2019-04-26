@@ -19,20 +19,20 @@ func TestAdder(t *testing.T) {
 	//carry in
 	testAdderReturnsCorrectResult(0, 0, true, 1, false, t)
 	testAdderReturnsCorrectResult(20, 2, true, 23, false, t)
-	testAdderReturnsCorrectResult(0xFF, 0, true, 0, true, t)
+	testAdderReturnsCorrectResult(0xFFFF, 0, true, 0, true, t)
 
-	testAdderReturnsCorrectResult(128, 128, false, 0, true, t)
-	testAdderReturnsCorrectResult(129, 128, false, 1, true, t)
-	testAdderReturnsCorrectResult(255, 2, false, 1, true, t)
+	testAdderReturnsCorrectResult(32768, 32768, false, 0, true, t)
+	testAdderReturnsCorrectResult(32769, 32768, false, 1, true, t)
+	testAdderReturnsCorrectResult(65535, 2, false, 1, true, t)
 }
 
 func testAdderReturnsCorrectResult(inputA int, inputB int, carryIn bool, expectedResult int, expectedCarry bool, t *testing.T) {
 	a := NewAdder()
-	setWireOnComponent16(a, inputA, inputB)
+	setWireOnComponent32(a, inputA, inputB)
 
 	a.Update(carryIn)
 
-	result := getValueOfOutput(a, 8)
+	result := getValueOfOutput(a, BUS_WIDTH)
 
 	if result != expectedResult {
 		t.Log(fmt.Sprintf("Expected output of %d but got %d", expectedResult, result))

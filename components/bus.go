@@ -3,11 +3,14 @@ package components
 import "github.com/djhworld/simple-computer/circuit"
 
 type Bus struct {
-	wires [8]circuit.Wire
+	wires []circuit.Wire
+	width int
 }
 
-func NewBus() *Bus {
+func NewBus(width int) *Bus {
 	b := new(Bus)
+	b.width = width
+	b.wires = make([]circuit.Wire, b.width)
 	for i, _ := range b.wires {
 		b.wires[i] = *circuit.NewWire("", false)
 	}
@@ -15,7 +18,7 @@ func NewBus() *Bus {
 	return b
 }
 
-func (b *Bus) ConnectOutput(ByteComponent) {
+func (b *Bus) ConnectOutput(Component) {
 
 }
 func (b *Bus) SetInputWire(index int, value bool) {
@@ -27,7 +30,7 @@ func (b *Bus) GetOutputWire(index int) bool {
 
 func (b *Bus) String() string {
 	result := ""
-	for i := 0; i < 8; i++ {
+	for i := 0; i < b.width; i++ {
 		if b.GetOutputWire(i) {
 			result += "1"
 		} else {

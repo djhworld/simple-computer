@@ -1,19 +1,18 @@
 package memory
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/djhworld/simple-computer/components"
 )
 
-func TestMemory256Write(t *testing.T) {
-	bus := components.NewBus()
-	m := NewMemory256(bus)
+func TestMemory64KWrite(t *testing.T) {
+	bus := components.NewBus(BUS_WIDTH)
+	m := NewMemory64K(bus)
 
-	var i byte
-	var q byte = 0xFF
-	for i = 0x00; i < 0xFF; i++ {
+	var i uint16
+	var q uint16 = 0xFFFF
+	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
 		setBusValue(bus, i)
 		m.Update()
@@ -31,8 +30,8 @@ func TestMemory256Write(t *testing.T) {
 		q--
 	}
 
-	var expected byte = 0xFF
-	for i = 0x00; i < 0xFF; i++ {
+	var expected uint16 = 0xFFFF
+	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
 		setBusValue(bus, i)
 		m.Update()
@@ -49,17 +48,15 @@ func TestMemory256Write(t *testing.T) {
 		checkBus(bus, expected)
 		expected--
 	}
-
-	fmt.Println(m)
 }
 
-func TestMemory256DoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
-	bus := components.NewBus()
-	m := NewMemory256(bus)
+func TestMemory64KDoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
+	bus := components.NewBus(BUS_WIDTH)
+	m := NewMemory64K(bus)
 
-	var i byte
-	var q byte = 0xFF
-	for i = 0x00; i < 0xFF; i++ {
+	var i uint16
+	var q uint16 = 0xFFFF
+	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
 		setBusValue(bus, i)
 		m.Update()
@@ -75,8 +72,8 @@ func TestMemory256DoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
 		q--
 	}
 
-	var expected byte = 0xFF
-	for i = 0x00; i < 0xFF; i++ {
+	var expected uint16 = 0xFFFF
+	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
 		setBusValue(bus, i)
 		m.Update()
@@ -94,9 +91,9 @@ func TestMemory256DoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
 	}
 }
 
-func setBusValue(b *components.Bus, value byte) {
-	for i := 7; i >= 0; i-- {
-		r := (value & (1 << byte(i)))
+func setBusValue(b *components.Bus, value uint16) {
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
+		r := (value & (1 << uint16(i)))
 		if r != 0 {
 			b.SetInputWire(i, true)
 		} else {
@@ -105,13 +102,13 @@ func setBusValue(b *components.Bus, value byte) {
 	}
 }
 
-func checkBus(b *components.Bus, expected byte) bool {
-	var result byte
-	for i := 7; i >= 0; i-- {
+func checkBus(b *components.Bus, expected uint16) bool {
+	var result uint16
+	for i := BUS_WIDTH - 1; i >= 0; i-- {
 		if b.GetOutputWire(i) {
-			result = result | (1 << byte(i))
+			result = result | (1 << uint16(i))
 		} else {
-			result = result & ^(1 << byte(i))
+			result = result & ^(1 << uint16(i))
 		}
 	}
 	return result == expected

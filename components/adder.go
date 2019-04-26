@@ -5,12 +5,12 @@ import (
 )
 
 type Adder struct {
-	inputs   [16]circuit.Wire
+	inputs   [32]circuit.Wire
 	carryIn  circuit.Wire
-	adds     [8]Add2
+	adds     [16]Add2
 	carryOut circuit.Wire
-	outputs  [8]circuit.Wire
-	next     ByteComponent
+	outputs  [16]circuit.Wire
+	next     Component
 }
 
 func NewAdder() *Adder {
@@ -23,7 +23,7 @@ func NewAdder() *Adder {
 	return a
 }
 
-func (a *Adder) ConnectOutput(b ByteComponent) {
+func (a *Adder) ConnectOutput(b Component) {
 	a.next = b
 }
 
@@ -42,8 +42,8 @@ func (a *Adder) Carry() bool {
 func (a *Adder) Update(carryIn bool) {
 	a.carryIn.Update(carryIn)
 
-	awire := 15
-	bwire := 7
+	awire := 31
+	bwire := 15
 	for i := len(a.adds) - 1; i >= 0; i-- {
 		aval := a.inputs[awire].Get()
 		bval := a.inputs[bwire].Get()

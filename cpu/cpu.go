@@ -15,247 +15,249 @@ import (
 // ----------------------
 // arg A = memory address to load from
 // arg B = register to store value in
-// 0x00 = LD R0, R0
-// 0x01 = LD R0, R1
-// 0x02 = LD R0, R2
-// 0x03 = LD R0, R3
+// 0x0000 = LD R0, R0
+// 0x0001 = LD R0, R1
+// 0x0002 = LD R0, R2
+// 0x0003 = LD R0, R3
 
-// 0x04 = LD R1, R0
-// 0x05 = LD R1, R1
-// 0x06 = LD R1, R2
-// 0x07 = LD R1, R3
+// 0x0004 = LD R1, R0
+// 0x0005 = LD R1, R1
+// 0x0006 = LD R1, R2
+// 0x0007 = LD R1, R3
 
-// 0x08 = LD R2, R0
-// 0x09 = LD R2, R1
-// 0x0A = LD R2, R2
-// 0x0B = LD R2, R3
+// 0x0008 = LD R2, R0
+// 0x0009 = LD R2, R1
+// 0x000A = LD R2, R2
+// 0x000B = LD R2, R3
 
-// 0x0C = LD R3, R0
-// 0x0D = LD R3, R1
-// 0x0E = LD R3, R2
-// 0x0F = LD R3, R3
+// 0x000C = LD R3, R0
+// 0x000D = LD R3, R1
+// 0x000E = LD R3, R2
+// 0x000F = LD R3, R3
 
 // STORES
 // ----------------------
 // arg A = memory address for value
 // arg B = value to store in memory
-// 0x10 = ST R0, R0
-// 0x11 = ST R0, R1
-// 0x12 = ST R0, R2
-// 0x13 = ST R0, R3
+// 0x0010 = ST R0, R0
+// 0x0011 = ST R0, R1
+// 0x0012 = ST R0, R2
+// 0x0013 = ST R0, R3
 
-// 0x14 = ST R1, R0
-// 0x15 = ST R1, R1
-// 0x16 = ST R1, R2
-// 0x17 = ST R1, R3
+// 0x0014 = ST R1, R0
+// 0x0015 = ST R1, R1
+// 0x0016 = ST R1, R2
+// 0x0017 = ST R1, R3
 
-// 0x18 = ST R2, R0
-// 0x19 = ST R2, R1
-// 0x1A = ST R2, R2
-// 0x1B = ST R2, R3
+// 0x0018 = ST R2, R0
+// 0x0019 = ST R2, R1
+// 0x001A = ST R2, R2
+// 0x001B = ST R2, R3
 
-// 0x1C = ST R3, R0
-// 0x1D = ST R3, R1
-// 0x1E = ST R3, R2
-// 0x1F = ST R3, R3
+// 0x001C = ST R3, R0
+// 0x001D = ST R3, R1
+// 0x001E = ST R3, R2
+// 0x001F = ST R3, R3
 
 // DATA
 // put value in memory into register (2 byte instruction)
 // ----------------------
-// 0x20 = DATA R0
-// 0x21 = DATA R1
-// 0x22 = DATA R2
-// 0x23 = DATA R3
+// 0x0020 = DATA R0
+// 0x0021 = DATA R1
+// 0x0022 = DATA R2
+// 0x0023 = DATA R3
 
 // JMPR
 // set instruction address register to value in register
 // ----------------------
-// 0x30 = JMPR R0
-// 0x31 = JMPR R1
-// 0x32 = JMPR R2
-// 0x33 = JMPR R3
+// 0x0030 = JMPR R0
+// 0x0031 = JMPR R1
+// 0x0032 = JMPR R2
+// 0x0033 = JMPR R3
 
 // JMP
 // set instruction address register to next byte (2 byte instruction)
 // ----------------------
-// 0x40 = JMP <value>
+// 0x0040 = JMP <value>
 
 // JMP(CAEZ)
 // set instruction address register to next byte (2 byte instruction)
 // jump if <flag(s)> are true
 // ----------------------
-// 0x51 = JMPZ <value>
-// 0x52 = JMPE <value>
-// 0x53 = JMPEZ <value>
-// 0x54 = JMPA <value>
-// 0x55 = JMPAZ <value>
-// 0x56 = JMPAE <value>
-// 0x57 = JMPAEZ <value>
-// 0x58 = JMPC <value>
-// 0x59 = JMPCZ <value>
-// 0x5A = JMPCE <value>
-// 0x5B = JMPCEZ <value>
-// 0x5C = JMPCA <value>
-// 0x5D = JMPCAZ <value>
-// 0x5E = JMPCAE <value>
-// 0x5F = JMPCAEZ <value>
+// 0x0051 = JMPZ <value>
+// 0x0052 = JMPE <value>
+// 0x0053 = JMPEZ <value>
+// 0x0054 = JMPA <value>
+// 0x0055 = JMPAZ <value>
+// 0x0056 = JMPAE <value>
+// 0x0057 = JMPAEZ <value>
+// 0x0058 = JMPC <value>
+// 0x0059 = JMPCZ <value>
+// 0x005A = JMPCE <value>
+// 0x005B = JMPCEZ <value>
+// 0x005C = JMPCA <value>
+// 0x005D = JMPCAZ <value>
+// 0x005E = JMPCAE <value>
+// 0x005F = JMPCAEZ <value>
 
 // CLF (CLEAR FLAGS)
 // ----------------------
-// 0x60 CLF
+// 0x0060 CLF
 
 // IN
 // ----------------------
-// 0x70 = IN Data, R0
-// 0x71 = IN Data, R1
-// 0x72 = IN Data, R2
-// 0x73 = IN Data, R3
-// 0x74 = IN Addr, R0
-// 0x75 = IN Addr, R1
-// 0x76 = IN Addr, R2
-// 0x77 = IN Addr, R3
+// 0x0070 = IN Data, R0
+// 0x0071 = IN Data, R1
+// 0x0072 = IN Data, R2
+// 0x0073 = IN Data, R3
+// 0x0074 = IN Addr, R0
+// 0x0075 = IN Addr, R1
+// 0x0076 = IN Addr, R2
+// 0x0077 = IN Addr, R3
 
 // OUT
 // ----------------------
-// 0x78 = OUT Data, R0
-// 0x79 = OUT Data, R1
-// 0x7A = OUT Data, R2
-// 0x7B = OUT Data, R3
-// 0x7C = OUT Addr, R0
-// 0x7D = OUT Addr, R1
-// 0x7E = OUT Addr, R2
-// 0x7F = OUT Addr, R3
+// 0x0078 = OUT Data, R0
+// 0x0079 = OUT Data, R1
+// 0x007A = OUT Data, R2
+// 0x007B = OUT Data, R3
+// 0x007C = OUT Addr, R0
+// 0x007D = OUT Addr, R1
+// 0x007E = OUT Addr, R2
+// 0x007F = OUT Addr, R3
 
 // ADDS
 // ----------------------
-// 0x80 = ADD R0, R0
-// 0x81 = ADD R0, R1
-// 0x82 = ADD R0, R2
-// 0x83 = ADD R0, R3
+// 0x0080 = ADD R0, R0
+// 0x0081 = ADD R0, R1
+// 0x0082 = ADD R0, R2
+// 0x0083 = ADD R0, R3
 
-// 0x84 = ADD R1, R0
-// 0x85 = ADD R1, R1
-// 0x86 = ADD R1, R2
-// 0x87 = ADD R1, R3
+// 0x0084 = ADD R1, R0
+// 0x0085 = ADD R1, R1
+// 0x0086 = ADD R1, R2
+// 0x0087 = ADD R1, R3
 
-// 0x88 = ADD R2, R0
-// 0x89 = ADD R2, R1
-// 0x8A = ADD R2, R2
-// 0x8B = ADD R2, R3
+// 0x0088 = ADD R2, R0
+// 0x0089 = ADD R2, R1
+// 0x008A = ADD R2, R2
+// 0x008B = ADD R2, R3
 
-// 0x8C = ADD R3, R0
-// 0x8D = ADD R3, R1
-// 0x8E = ADD R3, R2
-// 0x8F = ADD R3, R3
+// 0x008C = ADD R3, R0
+// 0x008D = ADD R3, R1
+// 0x008E = ADD R3, R2
+// 0x008F = ADD R3, R3
 
 // SHR
 // ----------------------
-// 0x90 = SHR R0
-// 0x95 = SHR R1
-// 0x9A = SHR R2
-// 0x9F = SHR R3
+// 0x0090 = SHR R0
+// 0x0095 = SHR R1
+// 0x009A = SHR R2
+// 0x009F = SHR R3
 
 // SHL
 // ----------------------
-// 0xA0 = SHL R0
-// 0xA5 = SHL R1
-// 0xAA = SHL R2
-// 0xAF = SHL R3
+// 0x00A0 = SHL R0
+// 0x00A5 = SHL R1
+// 0x00AA = SHL R2
+// 0x00AF = SHL R3
 
 // NOT
 // ----------------------
-// 0xB0 = NOT R0
-// 0xB5 = NOT R1
-// 0xBA = NOT R2
-// 0xBF = NOT R3
+// 0x00B0 = NOT R0
+// 0x00B5 = NOT R1
+// 0x00BA = NOT R2
+// 0x00BF = NOT R3
 
 // ANDS
 // ----------------------
-// 0xC0 = AND R0, R0
-// 0xC1 = AND R0, R1
-// 0xC2 = AND R0, R2
-// 0xC3 = AND R0, R3
+// 0x00C0 = AND R0, R0
+// 0x00C1 = AND R0, R1
+// 0x00C2 = AND R0, R2
+// 0x00C3 = AND R0, R3
 
-// 0xC4 = AND R1, R0
-// 0xC5 = AND R1, R1
-// 0xC6 = AND R1, R2
-// 0xC7 = AND R1, R3
+// 0x00C4 = AND R1, R0
+// 0x00C5 = AND R1, R1
+// 0x00C6 = AND R1, R2
+// 0x00C7 = AND R1, R3
 
-// 0xC8 = AND R2, R0
-// 0xC9 = AND R2, R1
-// 0xCA = AND R2, R2
-// 0xCB = AND R2, R3
+// 0x00C8 = AND R2, R0
+// 0x00C9 = AND R2, R1
+// 0x00CA = AND R2, R2
+// 0x00CB = AND R2, R3
 
-// 0xCC = AND R3, R0
-// 0xCD = AND R3, R1
-// 0xCE = AND R3, R2
-// 0xCF = AND R3, R3
+// 0x00CC = AND R3, R0
+// 0x00CD = AND R3, R1
+// 0x00CE = AND R3, R2
+// 0x00CF = AND R3, R3
 
 // ORS
 // ----------------------
-// 0xD0 = OR R0, R0
-// 0xD1 = OR R0, R1
-// 0xD2 = OR R0, R2
-// 0xD3 = OR R0, R3
+// 0x00D0 = OR R0, R0
+// 0x00D1 = OR R0, R1
+// 0x00D2 = OR R0, R2
+// 0x00D3 = OR R0, R3
 
-// 0xD4 = OR R1, R0
-// 0xD5 = OR R1, R1
-// 0xD6 = OR R1, R2
-// 0xD7 = OR R1, R3
+// 0x00D4 = OR R1, R0
+// 0x00D5 = OR R1, R1
+// 0x00D6 = OR R1, R2
+// 0x00D7 = OR R1, R3
 
-// 0xD8 = OR R2, R0
-// 0xD9 = OR R2, R1
-// 0xDA = OR R2, R2
-// 0xDB = OR R2, R3
+// 0x00D8 = OR R2, R0
+// 0x00D9 = OR R2, R1
+// 0x00DA = OR R2, R2
+// 0x00DB = OR R2, R3
 
-// 0xDC = OR R3, R0
-// 0xDD = OR R3, R1
-// 0xDE = OR R3, R2
-// 0xDF = OR R3, R3
+// 0x00DC = OR R3, R0
+// 0x00DD = OR R3, R1
+// 0x00DE = OR R3, R2
+// 0x00DF = OR R3, R3
 
 // XORS
 // ----------------------
-// 0xE0 = XOR R0, R0
-// 0xE1 = XOR R0, R1
-// 0xE2 = XOR R0, R2
-// 0xE3 = XOR R0, R3
+// 0x00E0 = XOR R0, R0
+// 0x00E1 = XOR R0, R1
+// 0x00E2 = XOR R0, R2
+// 0x00E3 = XOR R0, R3
 
-// 0xE4 = XOR R1, R0
-// 0xE5 = XOR R1, R1
-// 0xE6 = XOR R1, R2
-// 0xE7 = XOR R1, R3
+// 0x00E4 = XOR R1, R0
+// 0x00E5 = XOR R1, R1
+// 0x00E6 = XOR R1, R2
+// 0x00E7 = XOR R1, R3
 
-// 0xE8 = XOR R2, R0
-// 0xE9 = XOR R2, R1
-// 0xEA = XOR R2, R2
-// 0xEB = XOR R2, R3
+// 0x00E8 = XOR R2, R0
+// 0x00E9 = XOR R2, R1
+// 0x00EA = XOR R2, R2
+// 0x00EB = XOR R2, R3
 
-// 0xEC = XOR R3, R0
-// 0xED = XOR R3, R1
-// 0xEE = XOR R3, R2
-// 0xEF = XOR R3, R3
+// 0x00EC = XOR R3, R0
+// 0x00ED = XOR R3, R1
+// 0x00EE = XOR R3, R2
+// 0x00EF = XOR R3, R3
 
 // CMP
 // ----------------------
-// 0xF0 = CMP R0, R0
-// 0xF1 = CMP R0, R1
-// 0xF2 = CMP R0, R2
-// 0xF3 = CMP R0, R3
+// 0x00F0 = CMP R0, R0
+// 0x00F1 = CMP R0, R1
+// 0x00F2 = CMP R0, R2
+// 0x00F3 = CMP R0, R3
 
-// 0xF4 = CMP R1, R0
-// 0xF5 = CMP R1, R1
-// 0xF6 = CMP R1, R2
-// 0xF7 = CMP R1, R3
+// 0x00F4 = CMP R1, R0
+// 0x00F5 = CMP R1, R1
+// 0x00F6 = CMP R1, R2
+// 0x00F7 = CMP R1, R3
 
-// 0xF8 = CMP R2, R0
-// 0xF9 = CMP R2, R1
-// 0xFA = CMP R2, R2
-// 0xFB = CMP R2, R3
+// 0x00F8 = CMP R2, R0
+// 0x00F9 = CMP R2, R1
+// 0x00FA = CMP R2, R2
+// 0x00FB = CMP R2, R3
 
-// 0xFC = CMP R3, R0
-// 0xFD = CMP R3, R1
-// 0xFE = CMP R3, R2
-// 0xFF = CMP R3, R3
+// 0x00FC = CMP R3, R0
+// 0x00FD = CMP R3, R1
+// 0x00FE = CMP R3, R2
+// 0x00FF = CMP R3, R3
+
+const BUS_WIDTH = 16
 
 const (
 	FLAGS_BUS_CARRY    = 0
@@ -306,7 +308,7 @@ type CPU struct {
 	iar    components.Register
 	flags  components.Register
 
-	memory  *memory.Memory256
+	memory  *memory.Memory64K
 	alu     *alu.ALU
 	stepper *components.Stepper
 	clock   *components.Clock
@@ -380,7 +382,7 @@ type CPU struct {
 	peripherals []Peripheral
 }
 
-func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
+func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	c := new(CPU)
 
 	c.stepper = components.NewStepper()
@@ -388,7 +390,7 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.memory = memory
 
 	// REGISTERS
-	c.controlBus = components.NewBus()
+	c.controlBus = components.NewBus(BUS_WIDTH)
 	c.mainBus = mainBus
 	c.gpReg0 = *components.NewRegister("R0", c.mainBus, c.mainBus)
 	c.gpReg1 = *components.NewRegister("R1", c.mainBus, c.mainBus)
@@ -406,8 +408,8 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	c.instrDecoder3x8 = *NewInstructionDecoder3x8()
 
 	// FLAGS
-	c.aluToFlagsBus = components.NewBus()
-	c.flagsBus = components.NewBus()
+	c.aluToFlagsBus = components.NewBus(BUS_WIDTH)
+	c.flagsBus = components.NewBus(BUS_WIDTH)
 	c.flags = *components.NewRegister("FLAGS", c.aluToFlagsBus, c.flagsBus)
 	// flags register is always enabled, and we initialise it with value 0
 	updateEnableStatus(&c.flags, true)
@@ -416,7 +418,7 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	updateSetStatus(&c.flags, false)
 
 	// TMP
-	c.tmpBus = components.NewBus()
+	c.tmpBus = components.NewBus(BUS_WIDTH)
 	c.tmp = *components.NewRegister("TMP", c.mainBus, c.tmpBus)
 	// tmp register is always enabled, and we initialise it with value 0
 	updateEnableStatus(&c.tmp, true)
@@ -425,11 +427,11 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory256) *CPU {
 	updateSetStatus(&c.tmp, false)
 
 	// BUS 1
-	c.busOneOutput = components.NewBus()
+	c.busOneOutput = components.NewBus(BUS_WIDTH)
 	c.busOne = *components.NewBusOne(c.tmpBus, c.busOneOutput)
 
 	// ACC
-	c.accBus = components.NewBus()
+	c.accBus = components.NewBus(BUS_WIDTH)
 	c.acc = *components.NewRegister("ACC", c.accBus, c.mainBus)
 
 	// ALU
@@ -588,7 +590,7 @@ func (c *CPU) step(clockState bool) {
 }
 
 func (c *CPU) clearMainBus() {
-	for i := 0; i < 8; i++ {
+	for i := 0; i < BUS_WIDTH; i++ {
 		c.mainBus.SetInputWire(i, false)
 	}
 }
@@ -645,14 +647,14 @@ func (c *CPU) updatePeripherals() {
 }
 
 func (c *CPU) updateIOBus() {
-	c.ioBus.Update(c.ir.Bit(4), c.ir.Bit(5))
+	c.ioBus.Update(c.ir.Bit(12), c.ir.Bit(13))
 }
 
 func (c *CPU) updateALU() {
 	//update ALU operation based on instruction register
-	c.aluOpAndGates[2].Update(c.ir.Bit(1), c.ir.Bit(0), c.stepper.GetOutputWire(4))
-	c.aluOpAndGates[1].Update(c.ir.Bit(2), c.ir.Bit(0), c.stepper.GetOutputWire(4))
-	c.aluOpAndGates[0].Update(c.ir.Bit(3), c.ir.Bit(0), c.stepper.GetOutputWire(4))
+	c.aluOpAndGates[2].Update(c.ir.Bit(9), c.ir.Bit(8), c.stepper.GetOutputWire(4))
+	c.aluOpAndGates[1].Update(c.ir.Bit(10), c.ir.Bit(8), c.stepper.GetOutputWire(4))
+	c.aluOpAndGates[0].Update(c.ir.Bit(11), c.ir.Bit(8), c.stepper.GetOutputWire(4))
 
 	c.alu.Op[2].Update(c.aluOpAndGates[2].Output())
 	c.alu.Op[1].Update(c.aluOpAndGates[1].Output())
@@ -664,9 +666,9 @@ func (c *CPU) updateALU() {
 }
 
 func (c *CPU) updateInstructionDecoder3x8() {
-	c.instrDecoder3x8.bit0NOTGate.Update(c.ir.Bit(0))
+	c.instrDecoder3x8.bit0NOTGate.Update(c.ir.Bit(8))
 
-	c.instrDecoder3x8.decoder.Update(c.ir.Bit(1), c.ir.Bit(2), c.ir.Bit(3))
+	c.instrDecoder3x8.decoder.Update(c.ir.Bit(9), c.ir.Bit(10), c.ir.Bit(11))
 
 	for i := 0; i < 8; i++ {
 		c.instrDecoder3x8.selectorGates[i].Update(c.instrDecoder3x8.decoder.GetOutputWire(i), c.instrDecoder3x8.bit0NOTGate.Output())
@@ -674,7 +676,7 @@ func (c *CPU) updateInstructionDecoder3x8() {
 }
 
 func (c *CPU) runStep4Gates() {
-	c.step4Gates[0].Update(c.stepper.GetOutputWire(3), c.ir.Bit(0))
+	c.step4Gates[0].Update(c.stepper.GetOutputWire(3), c.ir.Bit(8))
 
 	gate := 1
 	for selector := 0; selector < 7; selector++ {
@@ -682,12 +684,12 @@ func (c *CPU) runStep4Gates() {
 		gate++
 	}
 
-	c.step4Gate3And.Update(c.stepper.GetOutputWire(3), c.instrDecoder3x8.selectorGates[7].Output(), c.ir.Bit(4))
-	c.irBit4NOTGate.Update(c.ir.Bit(4))
+	c.step4Gate3And.Update(c.stepper.GetOutputWire(3), c.instrDecoder3x8.selectorGates[7].Output(), c.ir.Bit(12))
+	c.irBit4NOTGate.Update(c.ir.Bit(12))
 }
 
 func (c *CPU) runStep5Gates() {
-	c.step5Gates[0].Update(c.stepper.GetOutputWire(4), c.ir.Bit(0))
+	c.step5Gates[0].Update(c.stepper.GetOutputWire(4), c.ir.Bit(8))
 	c.step5Gates[1].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[0].Output())
 	c.step5Gates[2].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[1].Output())
 	c.step5Gates[3].Update(c.stepper.GetOutputWire(4), c.instrDecoder3x8.selectorGates[2].Output())
@@ -699,7 +701,7 @@ func (c *CPU) runStep5Gates() {
 }
 
 func (c *CPU) runStep6Gates() {
-	c.step6Gates[0].Update(c.stepper.GetOutputWire(5), c.ir.Bit(0), c.irInstructionNOTGate.Output())
+	c.step6Gates[0].Update(c.stepper.GetOutputWire(5), c.ir.Bit(8), c.irInstructionNOTGate.Output())
 	c.step6Gates2And.Update(c.stepper.GetOutputWire(5), c.instrDecoder3x8.selectorGates[2].Output())
 	c.step6Gates[1].Update(c.stepper.GetOutputWire(5), c.instrDecoder3x8.selectorGates[5].Output(), c.flagStateORGate.Output())
 }
@@ -762,8 +764,8 @@ func (c *CPU) runEnableOnRAM(state bool) {
 
 func (c *CPU) runEnableGeneralPurposeRegisters(state bool) {
 
-	c.instructionDecoderEnables2x4[0].Update(c.ir.Bit(6), c.ir.Bit(7))
-	c.instructionDecoderEnables2x4[1].Update(c.ir.Bit(4), c.ir.Bit(5))
+	c.instructionDecoderEnables2x4[0].Update(c.ir.Bit(14), c.ir.Bit(15))
+	c.instructionDecoderEnables2x4[1].Update(c.ir.Bit(12), c.ir.Bit(13))
 
 	// R0
 	c.gpRegEnableANDGates[0].Update(state, c.registerBEnable.Get(), c.instructionDecoderEnables2x4[0].GetOutputWire(0))
@@ -791,7 +793,7 @@ func (c *CPU) runEnableGeneralPurposeRegisters(state bool) {
 }
 
 func (c *CPU) runSet(state bool) {
-	c.irInstructionANDGate.Update(c.ir.Bit(3), c.ir.Bit(2), c.ir.Bit(1))
+	c.irInstructionANDGate.Update(c.ir.Bit(11), c.ir.Bit(10), c.ir.Bit(9))
 	c.irInstructionNOTGate.Update(c.irInstructionANDGate.Output())
 
 	c.refreshFlagStateGates()
@@ -809,14 +811,24 @@ func (c *CPU) runSet(state bool) {
 }
 
 func (c *CPU) refreshFlagStateGates() {
+	/*
+		// C
+		c.flagStateGates[0].Update(c.ir.Bit(12), c.flagsBus.GetOutputWire(FLAGS_BUS_CARRY))
+		// A
+		c.flagStateGates[1].Update(c.ir.Bit(13), c.flagsBus.GetOutputWire(FLAGS_BUS_A_LARGER))
+		// E
+		c.flagStateGates[2].Update(c.ir.Bit(14), c.flagsBus.GetOutputWire(FLAGS_BUS_EQUAL))
+		// Z
+		c.flagStateGates[3].Update(c.ir.Bit(15), c.flagsBus.GetOutputWire(FLAGS_BUS_ZERO))
+	*/
 	// C
-	c.flagStateGates[0].Update(c.ir.Bit(4), c.flagsBus.GetOutputWire(FLAGS_BUS_CARRY))
+	c.flagStateGates[0].Update(c.ir.Bit(12), c.flagsBus.GetOutputWire(FLAGS_BUS_CARRY))
 	// A
-	c.flagStateGates[1].Update(c.ir.Bit(5), c.flagsBus.GetOutputWire(FLAGS_BUS_A_LARGER))
+	c.flagStateGates[1].Update(c.ir.Bit(13), c.flagsBus.GetOutputWire(FLAGS_BUS_A_LARGER))
 	// E
-	c.flagStateGates[2].Update(c.ir.Bit(6), c.flagsBus.GetOutputWire(FLAGS_BUS_EQUAL))
+	c.flagStateGates[2].Update(c.ir.Bit(14), c.flagsBus.GetOutputWire(FLAGS_BUS_EQUAL))
 	// Z
-	c.flagStateGates[3].Update(c.ir.Bit(7), c.flagsBus.GetOutputWire(FLAGS_BUS_ZERO))
+	c.flagStateGates[3].Update(c.ir.Bit(15), c.flagsBus.GetOutputWire(FLAGS_BUS_ZERO))
 
 	c.flagStateORGate.Update(
 		c.flagStateGates[0].Output(),
@@ -911,7 +923,7 @@ func (c *CPU) runSetOnRegisterB() {
 }
 
 func (c *CPU) runSetGeneralPurposeRegisters(state bool) {
-	c.instructionDecoderSet2x4.Update(c.ir.Bit(6), c.ir.Bit(7))
+	c.instructionDecoderSet2x4.Update(c.ir.Bit(14), c.ir.Bit(15))
 
 	// R0
 	c.gpRegSetANDGates[0].Update(state, c.registerBSet.Get(), c.instructionDecoderSet2x4.GetOutputWire(0))
