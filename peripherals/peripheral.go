@@ -1,4 +1,4 @@
-package cpu
+package peripherals
 
 import (
 	"github.com/djhworld/simple-computer/components"

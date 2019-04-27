@@ -8,6 +8,7 @@ import (
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
 	"github.com/djhworld/simple-computer/memory"
+	"github.com/djhworld/simple-computer/peripherals"
 	"github.com/paulbellamy/ratecounter"
 )
 
@@ -378,7 +379,7 @@ type CPU struct {
 	carryTemp    components.Bit
 	carryANDGate circuit.ANDGate
 
-	peripherals []Peripheral
+	peripherals []peripherals.Peripheral
 }
 
 func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
@@ -508,12 +509,12 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	c.ioBusEnableGate = *circuit.NewANDGate()
 	c.ioBusSetGate = *circuit.NewANDGate()
 
-	c.peripherals = make([]Peripheral, 0)
+	c.peripherals = make([]peripherals.Peripheral, 0)
 
 	return c
 }
 
-func (c *CPU) ConnectPeripheral(p Peripheral) {
+func (c *CPU) ConnectPeripheral(p peripherals.Peripheral) {
 	p.Connect(c.ioBus, c.mainBus)
 	c.peripherals = append(c.peripherals, p)
 }
