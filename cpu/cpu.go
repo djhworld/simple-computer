@@ -311,7 +311,6 @@ type CPU struct {
 	memory  *memory.Memory64K
 	alu     *alu.ALU
 	stepper *components.Stepper
-	clock   *components.Clock
 	busOne  components.BusOne
 
 	mainBus       *components.Bus
@@ -386,7 +385,6 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	c := new(CPU)
 
 	c.stepper = components.NewStepper()
-	c.clock = &components.Clock{}
 	c.memory = memory
 
 	// REGISTERS
@@ -520,30 +518,27 @@ func (c *CPU) ConnectPeripheral(p Peripheral) {
 	c.peripherals = append(c.peripherals, p)
 }
 
-func (c *CPU) Run() {
+func (c *CPU) Run(tickDuration time.Duration) {
 	r := 0
 	counter := ratecounter.NewRateCounter(1 * time.Second)
-	c.clock.Start()
 	clockState := false
+	limiter := time.Tick(tickDuration)
+
 	for {
-		select {
-		case <-c.clock.BaseClock.C:
-			counter.Incr(1)
-			r++
-			if clockState {
-				clockState = false
-			} else {
-				clockState = true
-			}
-			c.step(clockState)
+		<-limiter
+		counter.Incr(1)
+		r++
+		if clockState {
+			clockState = false
+		} else {
+			clockState = true
+		}
+		c.step(clockState)
 
-			if r%5000 == 0 {
-				fmt.Println("CPU Speed:", counter.Rate(), "hz")
-			}
-
+		if r%500 == 0 {
+			fmt.Println("CPU Speed:", counter.Rate(), "hz")
 		}
 	}
-
 }
 
 func (c *CPU) String() string {

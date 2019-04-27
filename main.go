@@ -4,6 +4,7 @@ import (
 	"github.com/djhworld/simple-computer/components"
 	"github.com/djhworld/simple-computer/cpu"
 	"github.com/djhworld/simple-computer/memory"
+	"time"
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 	setMemoryLocation(m, b, 71, 0x40) // JUMP
 	setMemoryLocation(m, b, 72, 46) // JUMP
 
-	c.Run()
+	c.Run(500 * time.Microsecond)
 
 }
 
