@@ -1,6 +1,8 @@
 package components
 
-import "github.com/djhworld/simple-computer/circuit"
+import (
+	"github.com/djhworld/simple-computer/circuit"
+)
 
 const (
 	CLOCK_SET       = 0

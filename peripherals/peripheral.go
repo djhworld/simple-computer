@@ -8,3 +8,4 @@ type Peripheral interface {
 	Connect(*components.IOBus, *components.Bus)
 	Update()
 }
+

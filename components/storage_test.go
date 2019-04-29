@@ -1,7 +1,31 @@
 package components
 
-import "testing"
+import (
+	"testing"
+)
 
+func TestBit(t *testing.T) {
+	b := NewBit()
+	b.Update(false, true)
+	if b.Get() != false {
+		t.FailNow()
+	}
+
+	b.Update(false, false)
+	if b.Get() != false {
+		t.FailNow()
+	}
+
+	b.Update(true, true)
+	if b.Get() != true {
+		t.FailNow()
+	}
+
+	b.Update(false, false)
+	if b.Get() != true {
+		t.FailNow()
+	}
+}
 func TestWord(t *testing.T) {
 	d := new(DummyComponent)
 
