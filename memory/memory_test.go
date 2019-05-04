@@ -14,13 +14,13 @@ func TestMemory64KWrite(t *testing.T) {
 	var q uint16 = 0xFFFF
 	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
-		setBusValue(bus, i)
+		bus.SetValue(i)
 		m.Update()
 
 		m.AddressRegister.Unset()
 		m.Update()
 
-		setBusValue(bus, q)
+		bus.SetValue(q)
 		m.Set()
 		m.Update()
 
@@ -33,7 +33,7 @@ func TestMemory64KWrite(t *testing.T) {
 	var expected uint16 = 0xFFFF
 	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
-		setBusValue(bus, i)
+		bus.SetValue(i)
 		m.Update()
 
 		m.AddressRegister.Unset()
@@ -58,13 +58,13 @@ func TestMemory64KDoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
 	var q uint16 = 0xFFFF
 	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
-		setBusValue(bus, i)
+		bus.SetValue(i)
 		m.Update()
 
 		m.AddressRegister.Unset()
 		m.Update()
 
-		setBusValue(bus, q)
+		bus.SetValue(q)
 
 		m.Unset()
 		m.Update()
@@ -75,7 +75,7 @@ func TestMemory64KDoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
 	var expected uint16 = 0xFFFF
 	for i = 0x0000; i < 0xFFFF; i++ {
 		m.AddressRegister.Set()
-		setBusValue(bus, i)
+		bus.SetValue(i)
 		m.Update()
 
 		m.AddressRegister.Unset()
@@ -88,17 +88,6 @@ func TestMemory64KDoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
 		m.Update()
 
 		checkBus(bus, expected)
-	}
-}
-
-func setBusValue(b *components.Bus, value uint16) {
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
-		r := (value & (1 << uint16(i)))
-		if r != 0 {
-			b.SetInputWire(i, true)
-		} else {
-			b.SetInputWire(i, false)
-		}
 	}
 }
 

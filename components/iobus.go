@@ -40,6 +40,30 @@ func (i *IOBus) Disable() {
 	i.wires[CLOCK_ENABLE].Update(false)
 }
 
+func (i *IOBus) IsSet() bool {
+	return i.wires[CLOCK_SET].Get()
+}
+
+func (i *IOBus) IsEnable() bool {
+	return i.wires[CLOCK_ENABLE].Get()
+}
+
+func (i *IOBus) IsInputMode() bool {
+	return i.wires[MODE].Get() == false
+}
+
+func (i *IOBus) IsOutputMode() bool {
+	return i.wires[MODE].Get() == true
+}
+
+func (i *IOBus) IsDataMode() bool {
+	return i.wires[DATA_OR_ADDRESS].Get() == false
+}
+
+func (i *IOBus) IsAddressMode() bool {
+	return i.wires[DATA_OR_ADDRESS].Get() == true
+}
+
 func (i *IOBus) Update(mode, dataOrAddress bool) {
 	i.wires[MODE].Update(mode)
 	i.wires[DATA_OR_ADDRESS].Update(dataOrAddress)

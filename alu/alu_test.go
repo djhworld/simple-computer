@@ -289,8 +289,8 @@ func TestCMP(t *testing.T) {
 }
 
 func testOp(alu *ALU, op uint16, inputA, inputB uint16, CarryIn bool, expectedOutput uint16, expectedEqual, expectedIsLarger, expectedCarry, expectedZero bool, t *testing.T) {
-	setBusValue(inputABus, inputA)
-	setBusValue(inputBBus, inputB)
+	inputABus.SetValue(inputA)
+	inputBBus.SetValue(inputB)
 	setOp(alu, op)
 	alu.CarryIn.Update(CarryIn)
 	alu.Update()
@@ -316,19 +316,6 @@ func testOp(alu *ALU, op uint16, inputA, inputB uint16, CarryIn bool, expectedOu
 	if zeroFlagSet := alu.flagsOutputBus.GetOutputWire(3); zeroFlagSet != expectedZero {
 		t.Logf("Expected zero flag to be %v but got %v", expectedZero, zeroFlagSet)
 		t.FailNow()
-	}
-}
-
-func setBusValue(bus *components.Bus, value uint16) {
-	var x uint16 = 0
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
-		r := (value & (1 << x))
-		if r != 0 {
-			bus.SetInputWire(i, true)
-		} else {
-			bus.SetInputWire(i, false)
-		}
-		x++
 	}
 }
 

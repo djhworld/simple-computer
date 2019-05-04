@@ -222,4 +222,3 @@ func (dc *Decoder8x256) updateDecoder(a, b, c, d bool, decoderIndex int, outputW
 		}
 	}
 }
-

@@ -1,75 +1,184 @@
 package main
 
 import (
-	"github.com/djhworld/simple-computer/components"
-	"github.com/djhworld/simple-computer/cpu"
-	"github.com/djhworld/simple-computer/memory"
+	"fmt"
+	"os"
+	"runtime"
 	"time"
+
+	"github.com/djhworld/simple-computer/io"
 )
 
-func main() {
-	b := components.NewBus(16)
-	m := memory.NewMemory64K(b)
-	c := cpu.NewCPU(b, m)
+/*
+	instructions := []uint16{
+		0x20,
+		0x0100,
 
-	setMemoryLocation(m, b, 46, 0x20) // DATA R0
-	setMemoryLocation(m, b, 47, 0x07) // 7
-	setMemoryLocation(m, b, 48, 0x21) // DATA R1
-	setMemoryLocation(m, b, 49, 0x0A) // 10
-	setMemoryLocation(m, b, 50, 0x23) // DATA R3
-	setMemoryLocation(m, b, 51, 0x01) // .. 1
-	setMemoryLocation(m, b, 52, 0xEA) // XOR R2, R2
-	setMemoryLocation(m, b, 53, 0x60) // CLF
-	setMemoryLocation(m, b, 54, 0x90) // SHR R0
-	setMemoryLocation(m, b, 55, 0x58) // JC
-	setMemoryLocation(m, b, 56, 59)   // ...addr 59
-	setMemoryLocation(m, b, 57, 0x40) // JMP
-	setMemoryLocation(m, b, 58, 61)   // ...addr 61
-	setMemoryLocation(m, b, 59, 0x60) // CLF
-	setMemoryLocation(m, b, 60, 0x86) // ADD R1, R2
-	setMemoryLocation(m, b, 61, 0x60) // CLF
-	setMemoryLocation(m, b, 62, 0xA5) // SHL R1
-	setMemoryLocation(m, b, 63, 0xAF) // SHL R3
-	setMemoryLocation(m, b, 64, 0x58) // JC
-	setMemoryLocation(m, b, 65, 68)   // ...addr 68
-	setMemoryLocation(m, b, 66, 0x40) // JMP
-	setMemoryLocation(m, b, 67, 53)   // ...addr 53
-	setMemoryLocation(m, b, 68, 0x23) // DATA R3
-	setMemoryLocation(m, b, 69, 0xFF) // 255
-	setMemoryLocation(m, b, 70, 0x1E) // ST R3, R2
-	setMemoryLocation(m, b, 71, 0x40) // JUMP
-	setMemoryLocation(m, b, 72, 46) // JUMP
-
-	c.Run(500 * time.Microsecond)
-
-}
-
-func setMemoryLocation(m *memory.Memory64K, mainBus *components.Bus, address uint16, value uint16) {
-	m.AddressRegister.Set()
-	setBus(mainBus, address)
-	m.Update()
-
-	m.AddressRegister.Unset()
-	m.Update()
-
-	setBus(mainBus, value)
-	m.Set()
-	m.Update()
-
-	m.Unset()
-	m.Update()
-}
-
-func setBus(b *components.Bus, value uint16) {
-	var x = 0
-	for i := 16-1; i >= 0; i-- {
-		r := (value & (1 << uint16(x)))
-		if r != 0 {
-			b.SetInputWire(i, true)
-		} else {
-			b.SetInputWire(i, false)
-		}
-
-		x++
+		0x21,
+		0x01,
+		0x22, // DATA R2
+		0x000F,
+		0x7E, // OUT Addr, R2
+		0x73, // IN Data, R3
+		0xEA, // XOR, R2, R2
+		0x7E, // OUT Addr, R2
+		0xCF, // AND R3, R3
+		0x51, // JMPZ
+		0x04,
+		0x13, //ST R0, R3
+		0x84, //ADD R1, R0
+		0x60, //ADD R1, R0
+		0x40,
+		0x04,
 	}
+*/
+
+func init() {
+	// This is needed to arrange that main() runs on main thread.
+	// See documentation for functions that are only allowed to be called from the main thread.
+	runtime.LockOSThread()
+}
+
+func main() {
+	instructions := []uint16{
+		0x20, //DATA R0
+		0x0228,
+		0x21, //DATA R1
+		0x7E,
+		0x11, // ST R0, R1
+
+		0x20, //DATA R0
+		0x0229,
+		0x21, //DATA R1
+		0x40,
+		0x11, // ST R0, R1
+
+		0x20, //DATA R0
+		0x022A,
+		0x21, //DATA R1
+		0x40,
+		0x11, // ST R0, R1
+
+		0x20, //DATA R0
+		0x022B,
+		0x21, //DATA R1
+		0x7E,
+		0x11, // ST R0, R1
+
+		0x20, //DATA R0
+		0x022C,
+		0x21, //DATA R1
+		0x40,
+		0x11, // ST R0, R1
+
+		0x20, //DATA R0
+		0x022D,
+		0x21, //DATA R1
+		0x40,
+		0x11, // ST R0, R1
+
+		0x20, //DATA R0
+		0x022E,
+		0x21, //DATA R1
+		0x7E,
+		0x11, // ST R0, R1
+
+		0x20, //DATA R0
+		0x022F,
+		0x21, //DATA R1
+		0x00,
+		0x11, // ST R0, R1
+
+		0x22, // DATA R2
+		0x012F,
+
+		0x21, // DATA R1
+		0x001E,
+
+		0x23, // DATA R3
+		0x0007,
+		0x7F, // OUT Addr, R3
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x0228,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x0229,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x022A,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x022B,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x022C,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x022D,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x022E,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		0x7A, // OUT Data, R2
+		0x23, // DATA R3
+		0x022F,
+		0x000C, // LD R3, R0
+		0x78,   // OUT Data, R0
+		0x86,   // ADD R1, R2
+
+		// unselect and exit
+		0xEF, // XOR, R3, R3
+		0x7F, // OUT Addr, R3
+		//0xFF00,
+	}
+
+	keyPressChannel := make(chan *io.KeyPress)
+	screenChannel := make(chan *[160][240]byte)
+	quitChannel := make(chan bool, 10)
+
+	glfw := NewGlfwIO(screenChannel, keyPressChannel, quitChannel)
+	err := glfw.Init("simple-computer")
+	if err != nil {
+		fmt.Println("problem!", err)
+		os.Exit(1)
+	}
+
+	computer := NewComputer(screenChannel, quitChannel)
+	keyboard := io.NewKeyboard(keyPressChannel, quitChannel)
+	computer.ConnectKeyboard(keyboard)
+	computer.LoadToRAM(0x0000, instructions)
+
+	go keyboard.Run()
+	go computer.Run(time.Tick(1*time.Nanosecond), PrintStateConfig{true, 512})
+
+	glfw.Run()
 }

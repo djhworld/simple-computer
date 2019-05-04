@@ -234,11 +234,48 @@ func NewANDGate4() *ANDGate4 {
 	return a
 }
 
+func (g *ANDGate4) Output() bool {
+	return g.output.Get()
+}
+
 func (g *ANDGate4) Update(inputA, inputB, inputC, inputD bool) {
 	g.andA.Update(inputA, inputB)
 	g.andB.Update(g.andA.Output(), inputC)
 	g.andC.Update(g.andB.Output(), inputD)
 	g.output.Update(g.andC.Output())
+}
+
+type ANDGate5 struct {
+	andA   circuit.ANDGate
+	andB   circuit.ANDGate
+	andC   circuit.ANDGate
+	andD   circuit.ANDGate
+	output circuit.Wire
+}
+
+func NewANDGate5() *ANDGate5 {
+	a := new(ANDGate5)
+
+	a.output = *circuit.NewWire("o", false)
+
+	a.andA = *circuit.NewANDGate()
+	a.andB = *circuit.NewANDGate()
+	a.andC = *circuit.NewANDGate()
+	a.andD = *circuit.NewANDGate()
+
+	return a
+}
+
+func (g *ANDGate5) Output() bool {
+	return g.output.Get()
+}
+
+func (g *ANDGate5) Update(inputA, inputB, inputC, inputD, inputE bool) {
+	g.andA.Update(inputA, inputB)
+	g.andB.Update(g.andA.Output(), inputC)
+	g.andC.Update(g.andB.Output(), inputD)
+	g.andD.Update(g.andC.Output(), inputE)
+	g.output.Update(g.andD.Output())
 }
 
 type ANDGate3 struct {
@@ -274,4 +311,3 @@ func (g *ANDGate3) Update(inputA bool, inputB bool, inputC bool) {
 
 	g.output.Update(g.andB.Output())
 }
-

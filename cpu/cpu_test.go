@@ -1048,9 +1048,9 @@ func (p *DumbPeripheral) refreshValue(addressValue, dataValue uint16) {
 
 	if p.ioBus.GetOutputWire(components.DATA_OR_ADDRESS) {
 		//address mode
-		setBus(p.mainBus, addressValue)
+		p.mainBus.SetValue(addressValue)
 	} else {
-		setBus(p.mainBus, dataValue)
+		p.mainBus.SetValue(dataValue)
 	}
 	p.value.Update()
 	p.value.Unset()
@@ -1078,14 +1078,12 @@ func (p *DumbPeripheral) updateSet() {
 
 func doFetchDecodeExecute(c *CPU) {
 	for i := 0; i < 6; i++ {
-		c.step(true)
-		c.step(false)
+		c.Step()
 	}
-
 }
 
 func setIAR(c *CPU, value uint16) {
-	setBus(c.mainBus, value)
+	c.mainBus.SetValue(value)
 
 	c.iar.Set()
 	c.iar.Update()
@@ -1095,13 +1093,13 @@ func setIAR(c *CPU, value uint16) {
 
 func setMemoryLocation(c *CPU, address uint16, value uint16) {
 	c.memory.AddressRegister.Set()
-	setBus(c.mainBus, address)
+	c.mainBus.SetValue(address)
 	c.memory.Update()
 
 	c.memory.AddressRegister.Unset()
 	c.memory.Update()
 
-	setBus(c.mainBus, value)
+	c.mainBus.SetValue(value)
 	c.memory.Set()
 	c.memory.Update()
 
@@ -1111,13 +1109,13 @@ func setMemoryLocation(c *CPU, address uint16, value uint16) {
 
 func setMemoryLocation2(m *memory.Memory64K, address uint16, value uint16) {
 	m.AddressRegister.Set()
-	setBus(BUS, address)
+	BUS.SetValue(address)
 	m.Update()
 
 	m.AddressRegister.Unset()
 	m.Update()
 
-	setBus(BUS, value)
+	BUS.SetValue(value)
 	m.Set()
 	m.Update()
 
@@ -1130,28 +1128,28 @@ func setRegister(c *CPU, register int, value uint16) {
 	case 0:
 		c.gpReg0.Set()
 		c.gpReg0.Update()
-		setBus(c.mainBus, value)
+		c.mainBus.SetValue(value)
 		c.gpReg0.Update()
 		c.gpReg0.Unset()
 		c.gpReg0.Update()
 	case 1:
 		c.gpReg1.Set()
 		c.gpReg1.Update()
-		setBus(c.mainBus, value)
+		c.mainBus.SetValue(value)
 		c.gpReg1.Update()
 		c.gpReg1.Unset()
 		c.gpReg1.Update()
 	case 2:
 		c.gpReg2.Set()
 		c.gpReg2.Update()
-		setBus(c.mainBus, value)
+		c.mainBus.SetValue(value)
 		c.gpReg2.Update()
 		c.gpReg2.Unset()
 		c.gpReg2.Update()
 	case 3:
 		c.gpReg3.Set()
 		c.gpReg3.Update()
-		setBus(c.mainBus, value)
+		c.mainBus.SetValue(value)
 		c.gpReg3.Update()
 		c.gpReg3.Unset()
 		c.gpReg3.Update()
@@ -1223,19 +1221,5 @@ func checkRegisters(c *CPU, expReg0, expReg1, expReg2, expReg3 uint16, t *testin
 func setRegisters(c *CPU, values [4]uint16) {
 	for i, v := range values {
 		setRegister(c, i, v)
-	}
-}
-
-func setBus(b *components.Bus, value uint16) {
-	var x = 0
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
-		r := (value & (1 << uint16(x)))
-		if r != 0 {
-			b.SetInputWire(i, true)
-		} else {
-			b.SetInputWire(i, false)
-		}
-
-		x++
 	}
 }

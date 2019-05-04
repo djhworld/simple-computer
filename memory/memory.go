@@ -15,9 +15,9 @@ type Cell struct {
 	gates [3]circuit.ANDGate
 }
 
-func NewCell(bus *components.Bus) *Cell {
+func NewCell(inputBus, outputBus *components.Bus) *Cell {
 	c := new(Cell)
-	c.value = *components.NewRegister("", bus, bus)
+	c.value = *components.NewRegister("", inputBus, outputBus)
 	c.gates[0] = *circuit.NewANDGate()
 	c.gates[1] = *circuit.NewANDGate()
 	c.gates[2] = *circuit.NewANDGate()
@@ -62,7 +62,7 @@ func NewMemory64K(bus *components.Bus) *Memory64K {
 
 	for i := 0; i < 256; i++ {
 		for j := 0; j < 256; j++ {
-			m.data[i][j] = *NewCell(bus)
+			m.data[i][j] = *NewCell(bus, bus)
 		}
 	}
 

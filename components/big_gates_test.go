@@ -93,6 +93,58 @@ func TestANDGate4(t *testing.T) {
 	}
 }
 
+func TestANDGate5(t *testing.T) {
+	combinations := [][]bool{
+		[]bool{false, false, false, false, false, false},
+		[]bool{false, false, false, false, true, false},
+		[]bool{false, false, false, true, false, false},
+		[]bool{false, false, false, true, true, false},
+		[]bool{false, false, true, false, false, false},
+		[]bool{false, false, true, false, true, false},
+		[]bool{false, false, true, true, false, false},
+		[]bool{false, false, true, true, true, false},
+		[]bool{false, true, false, false, false, false},
+		[]bool{false, true, false, false, true, false},
+		[]bool{false, true, false, true, false, false},
+		[]bool{false, true, false, true, true, false},
+		[]bool{false, true, true, false, false, false},
+		[]bool{false, true, true, false, true, false},
+		[]bool{false, true, true, true, false, false},
+		[]bool{false, true, true, true, true, false},
+		[]bool{true, false, false, false, false, false},
+		[]bool{true, false, false, false, true, false},
+		[]bool{true, false, false, true, false, false},
+		[]bool{true, false, false, true, true, false},
+		[]bool{true, false, true, false, false, false},
+		[]bool{true, false, true, false, true, false},
+		[]bool{true, false, true, true, false, false},
+		[]bool{true, false, true, true, true, false},
+		[]bool{true, true, false, false, false, false},
+		[]bool{true, true, false, false, true, false},
+		[]bool{true, true, false, true, false, false},
+		[]bool{true, true, false, true, true, false},
+		[]bool{true, true, true, false, false, false},
+		[]bool{true, true, true, false, true, false},
+		[]bool{true, true, true, true, false, false},
+		[]bool{true, true, true, true, true, true},
+	}
+
+	for _, combination := range combinations {
+		wireA := circuit.NewWire("A", combination[0])
+		wireB := circuit.NewWire("B", combination[1])
+		wireC := circuit.NewWire("C", combination[2])
+		wireD := circuit.NewWire("D", combination[3])
+		wireE := circuit.NewWire("E", combination[4])
+
+		gate1 := NewANDGate5()
+		gate1.Update(wireA.Get(), wireB.Get(), wireC.Get(), wireD.Get(), wireE.Get())
+
+		if gate1.output.Get() != combination[5] {
+			t.Fail()
+		}
+	}
+}
+
 func TestANDGate8(t *testing.T) {
 	combinations := [][]bool{
 		[]bool{false, false, false, false, false, false, false, false, false},

@@ -1,4 +1,4 @@
-package peripherals
+package io
 
 import (
 	"testing"
@@ -13,8 +13,8 @@ func TestAdapterPutsKeycodeRegisterOnBusAndClearsIt(t *testing.T) {
 	adapter := NewKeyboardAdapter()
 	adapter.Connect(ioBus, mainBus)
 
-	setBus(mainBus, 0x000F)
-	setBus(adapter.keyboardInBus, 0x1234)
+	mainBus.SetValue(0x000F)
+	adapter.KeyboardInBus.SetValue(0x1234)
 
 	adapter.Update()
 
@@ -52,4 +52,3 @@ func checkBus(b *components.Bus, expected uint16) bool {
 	}
 	return result == expected
 }
-

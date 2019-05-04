@@ -96,7 +96,14 @@ func (r *Register) String() string {
 		}
 		x++
 	}
+	enable := 0
+	set := 0
+	if r.enable.Get() {
+		enable = 1
+	}
+	if r.set.Get() {
+		set = 1
+	}
 
-	return fmt.Sprintf("%s: %s (output = %s) E: %v S: %v", r.name, utils.ValueToString(r.Value()), utils.ValueToString(output), r.enable.Get(), r.set.Get())
+	return fmt.Sprintf("%s: %s E: %d S: %d", r.name, utils.ValueToString(r.Value()), enable, set)
 }
-

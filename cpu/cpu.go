@@ -2,14 +2,12 @@ package cpu
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/djhworld/simple-computer/alu"
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
+	"github.com/djhworld/simple-computer/io"
 	"github.com/djhworld/simple-computer/memory"
-	"github.com/djhworld/simple-computer/peripherals"
-	"github.com/paulbellamy/ratecounter"
 )
 
 // LOADS
@@ -309,10 +307,11 @@ type CPU struct {
 	iar    components.Register
 	flags  components.Register
 
-	memory  *memory.Memory64K
-	alu     *alu.ALU
-	stepper *components.Stepper
-	busOne  components.BusOne
+	clockState bool
+	memory     *memory.Memory64K
+	alu        *alu.ALU
+	stepper    *components.Stepper
+	busOne     components.BusOne
 
 	mainBus       *components.Bus
 	tmpBus        *components.Bus
@@ -379,12 +378,13 @@ type CPU struct {
 	carryTemp    components.Bit
 	carryANDGate circuit.ANDGate
 
-	peripherals []peripherals.Peripheral
+	peripherals []io.Peripheral
 }
 
 func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	c := new(CPU)
 
+	c.clockState = false
 	c.stepper = components.NewStepper()
 	c.memory = memory
 
@@ -509,41 +509,30 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	c.ioBusEnableGate = *circuit.NewANDGate()
 	c.ioBusSetGate = *circuit.NewANDGate()
 
-	c.peripherals = make([]peripherals.Peripheral, 0)
+	c.peripherals = make([]io.Peripheral, 0)
 
 	return c
 }
 
-func (c *CPU) ConnectPeripheral(p peripherals.Peripheral) {
+func (c *CPU) ConnectPeripheral(p io.Peripheral) {
 	p.Connect(c.ioBus, c.mainBus)
 	c.peripherals = append(c.peripherals, p)
 }
 
-func (c *CPU) Run(tickDuration time.Duration) {
-	r := 0
-	counter := ratecounter.NewRateCounter(1 * time.Second)
-	clockState := false
-	limiter := time.Tick(tickDuration)
-
-	for {
-		<-limiter
-		counter.Incr(1)
-		r++
-		if clockState {
-			clockState = false
+func (c *CPU) Step() {
+	for i := 0; i < 2; i++ {
+		if c.clockState {
+			c.clockState = false
 		} else {
-			clockState = true
+			c.clockState = true
 		}
-		c.step(clockState)
 
-		if r%500 == 0 {
-			fmt.Println("CPU Speed:", counter.Rate(), "hz")
-		}
+		c.step(c.clockState)
 	}
 }
 
 func (c *CPU) String() string {
-	return fmt.Sprintf("stepper: %s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\nbus1: %s\n%s\n%s\n",
+	return fmt.Sprintf("STEPPER: %s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\nBUS1: %s\n%s\n%s\n",
 		c.stepper.String(),
 		c.iar.String(),
 		c.memory.AddressRegister.String(),
@@ -555,13 +544,12 @@ func (c *CPU) String() string {
 		c.gpReg2.String(),
 		c.gpReg3.String(),
 		c.busOne.String(),
-		c.alu.String(),
 		c.flags.String(),
+		c.alu.String(),
 	)
 }
 
 func (c *CPU) step(clockState bool) {
-
 	c.stepper.Update(clockState)
 	c.runStep4Gates()
 	c.runStep5Gates()

@@ -1,6 +1,8 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func ValueToString(val uint16) string {
 	if val <= 0x000F {

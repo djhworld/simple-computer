@@ -21,11 +21,26 @@ func NewBus(width int) *Bus {
 func (b *Bus) ConnectOutput(Component) {
 
 }
+
 func (b *Bus) SetInputWire(index int, value bool) {
 	b.wires[index].Update(value)
 }
 func (b *Bus) GetOutputWire(index int) bool {
 	return b.wires[index].Get()
+}
+
+func (b *Bus) SetValue(value uint16) {
+	var x = 0
+	for i := b.width - 1; i >= 0; i-- {
+		r := (value & (1 << uint16(x)))
+		if r != 0 {
+			b.SetInputWire(i, true)
+		} else {
+			b.SetInputWire(i, false)
+		}
+
+		x++
+	}
 }
 
 func (b *Bus) String() string {
