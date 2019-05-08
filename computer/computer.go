@@ -1,4 +1,4 @@
-package main
+package computer
 
 import (
 	"fmt"
@@ -10,6 +10,8 @@ import (
 	"github.com/djhworld/simple-computer/io"
 	"github.com/djhworld/simple-computer/memory"
 )
+
+const CODE_REGION_START = uint16(0x0500)
 
 type PrintStateConfig struct {
 	PrintState      bool
@@ -54,10 +56,21 @@ func (c *SimpleComputer) ConnectKeyboard(keyboard *io.Keyboard) {
 }
 
 func (c *SimpleComputer) LoadToRAM(offset uint16, values []uint16) {
+	if offset < 0x0500 {
+		panic("0x0000 - 0x04FF is a reserved memory area")
+	}
+	if offset > 0xFEFF {
+		panic("0xFEFF - 0xFFFF is a reserved memory area")
+	}
+
 	log.Printf("Loading %d words to RAM at offset 0x%X", len(values), offset)
 	for i := 0; i < len(values); i++ {
-		c.putValueInRAM(offset+uint16(i), values[i])
+		c.loadToRAM(offset+uint16(i), values[i])
 	}
+}
+
+func (c *SimpleComputer) loadToRAM(addr uint16, value uint16) {
+	c.putValueInRAM(addr, value)
 }
 
 func (c *SimpleComputer) putValueInRAM(address, value uint16) {
@@ -78,6 +91,10 @@ func (c *SimpleComputer) putValueInRAM(address, value uint16) {
 
 func (c *SimpleComputer) Run(tickInterval <-chan time.Time, printStateConfig PrintStateConfig) {
 	log.Println("Starting computer....")
+	c.putValueInRAM(0xFEFE, 0x0040) //JMP back to code region start if IAR reaches the end
+	c.putValueInRAM(0xFEFF, CODE_REGION_START)
+
+	c.cpu.SetIAR(CODE_REGION_START)
 	go c.screenControl.Run()
 
 	steps := 0
@@ -88,7 +105,7 @@ func (c *SimpleComputer) Run(tickInterval <-chan time.Time, printStateConfig Pri
 		if printStateConfig.PrintState {
 			if steps%printStateConfig.PrintStateEvery == 0 {
 				fmt.Println("COMPUTER\n-----------------------------------------------------------")
-				fmt.Printf("Step count = %d, printing state every %d steps\n\n", steps, printStateConfig.PrintStateEvery)
+				fmt.Printf("Cycle count = %d, step count = %d, printing state every %d steps\n\n", steps/6, steps, printStateConfig.PrintStateEvery)
 				fmt.Println("CPU\n----------------------------------------")
 				fmt.Println(c.cpu.String())
 				fmt.Println()

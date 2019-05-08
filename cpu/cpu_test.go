@@ -25,7 +25,7 @@ func TestIARIncrementedOnEveryCycle(t *testing.T) {
 	ClearMem()
 	c := SetUpCPU()
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	var q uint16
 	for q = 0; q < 1000; q++ {
@@ -46,7 +46,7 @@ func TestInstructionReceivedFromMemory(t *testing.T) {
 		addr++
 	}
 
-	setIAR(c, 0xF00F)
+	c.SetIAR(0xF00F)
 
 	for _, b := range instructions {
 		doFetchDecodeExecute(c)
@@ -60,7 +60,7 @@ func TestFlagsRegisterAllFalse(t *testing.T) {
 
 	setMemoryLocation(c, 0x0000, 0x0081)
 	setRegisters(c, [4]uint16{0x0009, 0x000A, 0x0002, 0x0003})
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -73,7 +73,7 @@ func TestFlagsRegisterCarryFlagEnabled(t *testing.T) {
 
 	setMemoryLocation(c, 0x0000, 0x0081)
 	setRegisters(c, [4]uint16{0x0020, 0xFFFF, 0x0002, 0x0003})
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -86,7 +86,7 @@ func TestFlagsRegisterIsLargerFlagEnabled(t *testing.T) {
 
 	setMemoryLocation(c, 0x0000, 0x0081)
 	setRegisters(c, [4]uint16{0x0021, 0x0020, 0x0002, 0x0003})
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -99,7 +99,7 @@ func TestFlagsRegisterIsEqualsFlagEnabled(t *testing.T) {
 
 	setMemoryLocation(c, 0x0000, 0x0081)
 	setRegisters(c, [4]uint16{0x0021, 0x0021, 0x0002, 0x0003})
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -112,7 +112,7 @@ func TestFlagsRegisterIsZeroFlagEnabled(t *testing.T) {
 
 	setMemoryLocation(c, 0x0000, 0x0081)
 	setRegisters(c, [4]uint16{0x0001, 0xFFFF, 0x0002, 0x0003})
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -125,7 +125,7 @@ func TestFlagsRegisterMultipleEnabled(t *testing.T) {
 
 	setMemoryLocation(c, 0x0000, 0x0081)
 	setRegisters(c, [4]uint16{0xFFFF, 0x0001, 0x0002, 0x0003})
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -139,7 +139,7 @@ func TestSTThenLD(t *testing.T) {
 		//  ST R2, R3
 		setMemoryLocation(c, i, 0x001B)
 	}
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	//storing values into memory
 	var value uint16 = 0x0400
@@ -153,7 +153,7 @@ func TestSTThenLD(t *testing.T) {
 		// LD R2, R3
 		setMemoryLocation(c, i, 0x000B)
 	}
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	//retrieving them back from memory
 	value = 0x0400
@@ -178,7 +178,7 @@ func TestLD4Times(t *testing.T) {
 		addr++
 	}
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	addr = 0x00A2
 	for _, v := range values {
@@ -221,7 +221,7 @@ func testLD(instruction uint16, memAddress, memValue uint16, inputRegisters, exp
 	c := SetUpCPU()
 	var insAddr uint16 = 0x0000
 	setMemoryLocation(c, insAddr, instruction)
-	setIAR(c, insAddr)
+	c.SetIAR(insAddr)
 
 	setMemoryLocation(c, memAddress, memValue)
 
@@ -262,7 +262,7 @@ func testST(instruction uint16, inputRegisters [4]uint16, expectedValueAddress, 
 	// ST value into memory
 	var insAddr uint16 = 0x0000
 	setMemoryLocation(c, insAddr, instruction)
-	setIAR(c, insAddr)
+	c.SetIAR(insAddr)
 
 	setRegisters(c, inputRegisters)
 
@@ -270,7 +270,7 @@ func testST(instruction uint16, inputRegisters [4]uint16, expectedValueAddress, 
 
 	//LD value into register zero
 	setMemoryLocation(c, insAddr+1, 0x0000)
-	setIAR(c, insAddr+1)
+	c.SetIAR(insAddr + 1)
 
 	setRegisters(c, [4]uint16{expectedValueAddress, inputRegisters[1], inputRegisters[2], inputRegisters[3]})
 
@@ -304,7 +304,7 @@ func TestDATA(t *testing.T) {
 	setMemoryLocation(c, insAddr+6, 0x0023)
 	setMemoryLocation(c, insAddr+7, 0xF374)
 
-	setIAR(c, insAddr)
+	c.SetIAR(insAddr)
 
 	setRegisters(c, [4]uint16{0x0001, 0x0001, 0x0001, 0x0001})
 
@@ -333,7 +333,7 @@ func testJMPR(instruction uint16, inputRegisters [4]uint16, expectedIAR uint16, 
 	// JMPR
 	setMemoryLocation(c, insAddr, instruction)
 
-	setIAR(c, insAddr)
+	c.SetIAR(insAddr)
 
 	setRegisters(c, inputRegisters)
 
@@ -361,7 +361,7 @@ func testJMP(expectedIAR uint16, t *testing.T) {
 	setMemoryLocation(c, insAddr, 0x0040)
 	setMemoryLocation(c, insAddr+1, expectedIAR)
 
-	setIAR(c, insAddr)
+	c.SetIAR(insAddr)
 
 	inputRegisters := [4]uint16{0x0001, 0x0001, 0x0001, 0x0001}
 	setRegisters(c, inputRegisters)
@@ -569,7 +569,7 @@ func testJMPConditional(jmpConditionInstr, destination, initialInstr uint16, inp
 	setMemoryLocation(c, insAddr+1, jmpConditionInstr)
 	setMemoryLocation(c, insAddr+2, destination)
 
-	setIAR(c, insAddr)
+	c.SetIAR(insAddr)
 
 	setRegisters(c, inputRegisters)
 
@@ -600,7 +600,7 @@ func testCLF(initialInstruction uint16, initialRegisters [4]uint16, t *testing.T
 	setMemoryLocation(c, insAddr, initialInstruction)
 	setMemoryLocation(c, insAddr+1, 0x0060)
 
-	setIAR(c, insAddr)
+	c.SetIAR(insAddr)
 
 	setRegisters(c, initialRegisters)
 
@@ -672,7 +672,7 @@ func testALUAddWithCarry(instruction uint16, inputRegisters, expectedOutputRegis
 	setMemoryLocation(c, 0x0000, instruction)
 	setMemoryLocation(c, 0x0001, instruction)
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	setRegisters(c, inputRegisters)
 	doFetchDecodeExecute(c)
@@ -796,7 +796,7 @@ func testCMP(instruction uint16, inputRegisters [4]uint16, expectedOutputRegiste
 		setRegister(c, i, r)
 	}
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -812,7 +812,7 @@ func testInstruction(instruction uint16, inputRegisters [4]uint16, expectedOutpu
 		setRegister(c, i, r)
 	}
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -854,7 +854,7 @@ func testShift(instruction uint16, inputRegisters [4]uint16, expectedOutputRegis
 		setRegister(c, i, r)
 	}
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	for i = 0; i < shifts; i++ {
 		doFetchDecodeExecute(c)
@@ -882,7 +882,7 @@ func testSubtract(inputA, inputB uint16, t *testing.T) {
 	setMemoryLocation(c, 0x0002, 0x0060) // CLF
 	setMemoryLocation(c, 0x0003, 0x0081) // ADD R0, R1
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 	doFetchDecodeExecute(c)
@@ -927,7 +927,7 @@ func testMultiply(inputA, inputB uint16, t *testing.T) {
 
 	setRegisters(c, [4]uint16{inputA, inputB, 0, 0})
 
-	setIAR(c, 50)
+	c.SetIAR(50)
 
 	for {
 		doFetchDecodeExecute(c)
@@ -961,7 +961,7 @@ func testIOInputInstruction(instruction uint16, inputRegisters, expectedRegister
 	setMemoryLocation(c, 0x0000, instruction)
 	setRegisters(c, inputRegisters)
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -992,7 +992,7 @@ func testIOOutputInstruction(instruction uint16, inputRegisters [4]uint16, expec
 	setMemoryLocation(c, 0x0000, instruction)
 	setRegisters(c, inputRegisters)
 
-	setIAR(c, 0x0000)
+	c.SetIAR(0x0000)
 
 	doFetchDecodeExecute(c)
 
@@ -1080,15 +1080,6 @@ func doFetchDecodeExecute(c *CPU) {
 	for i := 0; i < 6; i++ {
 		c.Step()
 	}
-}
-
-func setIAR(c *CPU, value uint16) {
-	c.mainBus.SetValue(value)
-
-	c.iar.Set()
-	c.iar.Update()
-	c.iar.Unset()
-	c.iar.Update()
 }
 
 func setMemoryLocation(c *CPU, address uint16, value uint16) {

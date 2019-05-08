@@ -519,6 +519,18 @@ func (c *CPU) ConnectPeripheral(p io.Peripheral) {
 	c.peripherals = append(c.peripherals, p)
 }
 
+// Jump IAR
+func (c *CPU) SetIAR(address uint16) {
+	c.mainBus.SetValue(address)
+
+	updateSetStatus(&c.iar, true)
+	runUpdateOn(&c.iar)
+	updateSetStatus(&c.iar, false)
+	runUpdateOn(&c.iar)
+
+	c.clearMainBus()
+}
+
 func (c *CPU) Step() {
 	for i := 0; i < 2; i++ {
 		if c.clockState {
