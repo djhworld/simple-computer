@@ -1,8 +1,8 @@
 package io
 
 import (
-	"fmt"
 	"log"
+	"time"
 
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
@@ -140,14 +140,15 @@ func (k *Keyboard) ConnectTo(bus *components.Bus) {
 }
 
 func (k *Keyboard) Run() {
+	clock := time.Tick(33 * time.Millisecond)
 	for {
+		<-clock
 		select {
 		case <-k.quit:
 			log.Println("Stopping keyboard")
 			return
 		case key := <-k.keyPressChannel:
 			if key.IsDown {
-				fmt.Println(key)
 				k.outBus.SetValue(uint16(key.Value))
 			}
 		}

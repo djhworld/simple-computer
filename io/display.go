@@ -166,7 +166,7 @@ type ScreenControl struct {
 func NewScreenControl(adapter *DisplayAdapter, outputChan chan *[160][240]byte, quit chan bool) *ScreenControl {
 	s := new(ScreenControl)
 	s.adapter = adapter
-	s.clock = time.Tick(16 * time.Millisecond)
+	s.clock = time.Tick(33 * time.Millisecond)
 	s.quit = quit
 	s.outputChan = outputChan
 	return s
