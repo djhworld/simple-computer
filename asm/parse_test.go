@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestParseLabel(t *testing.T) {
+func TestParseDefLabel(t *testing.T) {
 	p := Parser{}
 
 	result, err := p.Parse(strings.NewReader(`
@@ -14,7 +14,7 @@ func TestParseLabel(t *testing.T) {
 	end:
 	`))
 
-	expected := []Instruction{LABEL{"start"}, LABEL{"end"}}
+	expected := []Instruction{DEFLABEL{"start"}, DEFLABEL{"end"}}
 
 	if err != nil {
 		t.FailNow()
@@ -27,6 +27,54 @@ func TestParseLabel(t *testing.T) {
 	if result[1] != expected[1] {
 		t.FailNow()
 	}
+}
+
+func TestParseDefSymbol(t *testing.T) {
+	p := Parser{}
+
+	result, err := p.Parse(strings.NewReader(`
+	%counter = 0x0015
+	%foo =    91
+	%bar   =        0x2198
+	%WOOHoo93 =0x104
+	`))
+
+	expected := []Instruction{
+		DEFSYMBOL{"counter", 0x0015},
+		DEFSYMBOL{"foo", 91},
+		DEFSYMBOL{"bar", 0x2198},
+		DEFSYMBOL{"WOOHoo93", 0x104},
+	}
+
+	if err != nil {
+		t.FailNow()
+	}
+
+	if result[0] != expected[0] {
+		t.FailNow()
+	}
+
+	if result[1] != expected[1] {
+		t.FailNow()
+	}
+}
+
+
+func TestParseCALL(t *testing.T) {
+	input :=`
+	CALL foo
+	CALL    BAR
+	CALL 9384f-f
+	`
+
+	expected := []Instruction{
+		CALL{LABEL{"foo"}},
+		CALL{LABEL{"BAR"}},
+		CALL{LABEL{"9384f-f"}},
+	}
+
+	testParseInstructions(input, expected, t)
+
 }
 
 func TestParseADD(t *testing.T) {
@@ -188,6 +236,11 @@ func TestParseJR(t *testing.T) {
 
 func TestParseDATA(t *testing.T) {
 	input := `
+		DATA R0, %foo
+		DATA R1,%bar
+		DATA R2,    %baz
+		DATA R3,%BOO
+		DATA R0, %bee23
 		DATA R0, 0xFE85
 		DATA R1,0x2963
 		DATA R2,    0x000A
@@ -195,7 +248,18 @@ func TestParseDATA(t *testing.T) {
 		DATA R0, 0xf9fe
 	`
 
-	expected := []Instruction{DATA{REG0, 0xFE85}, DATA{REG1, 0x2963}, DATA{REG2, 0x000A}, DATA{REG3, 19}, DATA{REG0, 0xF9FE}}
+	expected := []Instruction{
+		DATA{REG0, SYMBOL{"foo"}},
+		DATA{REG1, SYMBOL{"bar"}},
+		DATA{REG2, SYMBOL{"baz"}},
+		DATA{REG3, SYMBOL{"BOO"}},
+		DATA{REG0, SYMBOL{"bee23"}},
+		DATA{REG0, NUMBER{0xFE85}},
+		DATA{REG1, NUMBER{0x2963}},
+		DATA{REG2, NUMBER{0x000A}},
+		DATA{REG3, NUMBER{19}},
+		DATA{REG0, NUMBER{0xF9FE}},
+	}
 
 	testParseInstructions(input, expected, t)
 }
@@ -332,13 +396,13 @@ func TestParseSimpleProgram(t *testing.T) {
 	`
 
 	expected := []Instruction{
-		LABEL{"loop"},
-		DATA{REG0, 0x1235},
+		DEFLABEL{"loop"},
+		DATA{REG0, NUMBER{0x1235}},
 		ADD{REG1, REG0},
 		CMP{REG0, REG1},
 		JMPF{[]string{"E"}, LABEL{"foo"}},
 		JMP{LABEL{"loop"}},
-		LABEL{"foo"},
+		DEFLABEL{"foo"},
 		AND{REG1, REG0},
 		OR{REG1, REG2},
 	}

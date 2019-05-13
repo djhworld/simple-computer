@@ -66,13 +66,13 @@ import (
 // 0x0022 = DATA R2
 // 0x0023 = DATA R3
 
-// JMPR
+// JR
 // set instruction address register to value in register
 // ----------------------
-// 0x0030 = JMPR R0
-// 0x0031 = JMPR R1
-// 0x0032 = JMPR R2
-// 0x0033 = JMPR R3
+// 0x0030 = JR R0
+// 0x0031 = JR R1
+// 0x0032 = JR R2
+// 0x0033 = JR R3
 
 // JMP
 // set instruction address register to next byte (2 byte instruction)

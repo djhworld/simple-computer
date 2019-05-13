@@ -1,4 +1,4 @@
-package asm 
+package asm
 
 import (
 	"bufio"
@@ -9,11 +9,12 @@ import (
 	"strings"
 )
 
-var IS_LABEL *regexp.Regexp = regexp.MustCompile("[A-Za-z0-9-]+:")
-var INSTRUCTION *regexp.Regexp = regexp.MustCompile(`(CLF)|(JR)\s*(R\d)|(NOT)\s*(R\d)|(SHL)\s*(R\d)|(SHR)\s*(R\d)|(ADD)\s*(R\d,\s*R\d)|(CMP)\s*(R\d,\s*R\d)|(AND)\s*(R\d,\s*R\d)|(OR)\s*(R\d,\s*R\d)|(LD)\s*(R\d,\s*R\d)|(ST)\s*(R\d,\s*R\d)|(XOR)\s*(R\d,\s*R\d)|(DATA)\s*(R\d,\s*(0x)?[0-9A-Fa-f]+)|(OUT)\s*([A-Za-z]+,\s*R\d)|(IN)\s*([A-Za-z]+,\s*R\d)|(JMP[A-Z]+)\s*([A-Za-z0-9-]+)|(JMP)\s*([A-Za-z0-9-]+)`)
+var IS_DEFLABEL *regexp.Regexp = regexp.MustCompile("[A-Za-z0-9-]+:")
+var IS_DEFSYMBOL *regexp.Regexp = regexp.MustCompile(`%([A-Za-z0-9-]+)\s*=\s*((0x)?[0-9a-fA-F]+)`)
+var INSTRUCTION *regexp.Regexp = regexp.MustCompile(`(CALL)\s*([A-Za-z0-9-]+)|(DATA)\s*(R\d,\s*.+)|(CLF)|(JR)\s*(R\d)|(NOT)\s*(R\d)|(SHL)\s*(R\d)|(SHR)\s*(R\d)|(ADD)\s*(R\d,\s*R\d)|(CMP)\s*(R\d,\s*R\d)|(AND)\s*(R\d,\s*R\d)|(OR)\s*(R\d,\s*R\d)|(LD)\s*(R\d,\s*R\d)|(ST)\s*(R\d,\s*R\d)|(XOR)\s*(R\d,\s*R\d)|(OUT)\s*([A-Za-z]+,\s*R\d)|(IN)\s*([A-Za-z]+,\s*R\d)|(JMP[A-Z]+)\s*([A-Za-z0-9-]+)|(JMP)\s*([A-Za-z0-9-]+)`)
 var TWO_REGISTER_EXTRACTOR *regexp.Regexp = regexp.MustCompile(`R(\d),\s*R(\d)\s*`)
 var ONE_REGISTER_EXTRACTOR *regexp.Regexp = regexp.MustCompile(`R(\d)\s*`)
-var DATA_EXTRACTOR *regexp.Regexp = regexp.MustCompile(`R(\d),\s*((0x)?[0-9a-fA-F]+)`)
+var DATA_EXTRACTOR *regexp.Regexp = regexp.MustCompile(`R(\d),\s*((0x)?[0-9a-fA-F]+|(%)([A-Za-z0-9-]+))`)
 var IO_EXTRACTOR *regexp.Regexp = regexp.MustCompile(`(Addr|Data),\s*R(\d)`)
 var LABEL_EXTRACTOR *regexp.Regexp = regexp.MustCompile(`([A-Za-z0-9-]+)`)
 var FLAGS_EXTRACTOR *regexp.Regexp = regexp.MustCompile(`([CAEZ]+)`)
@@ -40,8 +41,14 @@ func (p *Parser) Parse(input io.Reader) ([]Instruction, error) {
 			continue
 		}
 
-		if IS_LABEL.MatchString(line) {
+		if IS_DEFLABEL.MatchString(line) {
 			instructions = append(instructions, processLabel(line))
+		} else if IS_DEFSYMBOL.MatchString(line) {
+			if ins, err := parseDefSymbol(line); err == nil {
+				instructions = append(instructions, ins)
+			} else {
+				return nil, err
+			}
 		} else if INSTRUCTION.MatchString(line) {
 			if ins, err := parseInstruction(line); err == nil {
 				instructions = append(instructions, ins)
@@ -59,9 +66,32 @@ func (p *Parser) Parse(input io.Reader) ([]Instruction, error) {
 	return instructions, nil
 }
 
-func processLabel(line string) LABEL {
+func parseDefSymbol(line string) (Instruction, error) {
+	tokens := IS_DEFSYMBOL.FindStringSubmatch(line)
+	if len(tokens) != 4 {
+		return nil, fmt.Errorf("could not parse the arguments correctly out of DEFSYMBOL %s", line)
+	}
+
+	var value uint64
+	var err error
+	// parse in base 16 or 10
+	if tokens[3] == "0x" {
+		value, err = strconv.ParseUint(strings.Replace(tokens[2], "0x", "", -1), 16, 16)
+	} else {
+		value, err = strconv.ParseUint(tokens[2], 10, 16)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return DEFSYMBOL{tokens[1], uint16(value)}, nil
+}
+
+func processLabel(line string) DEFLABEL {
 	line = strings.Replace(line, ":", "", -1)
-	return LABEL{line}
+
+	return DEFLABEL{line}
 }
 
 func stripEmptyGroups(input []string) []string {
@@ -97,7 +127,7 @@ func parseInstruction(line string) (Instruction, error) {
 		instruction = CLF{}
 	case "OUT", "IN":
 		instruction, err = parseIOInstruction(instructionName, operands)
-	case "JMP", "JMPZ", "JMPE", "JMPEZ", "JMPA", "JMPAZ", "JMPAE", "JMPAEZ", "JMPC", "JMPCZ", "JMPCE", "JMPCEZ", "JMPCA", "JMPCAZ", "JMPCAE", "JMPCAEZ":
+	case "CALL", "JMP", "JMPZ", "JMPE", "JMPEZ", "JMPA", "JMPAZ", "JMPAE", "JMPAEZ", "JMPC", "JMPCZ", "JMPCE", "JMPCEZ", "JMPCA", "JMPCAZ", "JMPCAE", "JMPCAEZ":
 		instruction, err = parseLabelledJump(instructionName, operands)
 	default:
 		return nil, fmt.Errorf("unknown instruction name '%s'", instructionName)
@@ -114,6 +144,8 @@ func parseLabelledJump(name string, operands string) (Instruction, error) {
 	switch name {
 	case "JMP":
 		return JMP{LABEL{arguments[1]}}, nil
+	case "CALL":
+		return CALL{LABEL{arguments[1]}}, nil
 	case "JMPZ", "JMPE", "JMPEZ", "JMPA", "JMPAZ", "JMPAE", "JMPAEZ", "JMPC", "JMPCZ", "JMPCE", "JMPCEZ", "JMPCA", "JMPCAZ", "JMPCAE", "JMPCAEZ":
 		flags, err := extractFlagsFrom(name)
 		if err != nil {
@@ -236,6 +268,7 @@ func parseOneRegisterInstruction(name string, operands string) (Instruction, err
 	}
 }
 
+/*
 func parseDataInstruction(operands string) (Instruction, error) {
 	arguments := DATA_EXTRACTOR.FindStringSubmatch(operands)
 	if len(arguments) != 4 {
@@ -263,4 +296,39 @@ func parseDataInstruction(operands string) (Instruction, error) {
 	}
 
 	return DATA{register, uint16(value)}, nil
+}
+*/
+
+func parseDataInstruction(operands string) (Instruction, error) {
+	arguments := DATA_EXTRACTOR.FindStringSubmatch(operands)
+	if len(arguments) != 6 {
+		return nil, fmt.Errorf("could not parse the arguments correctly out of DATA %s", operands)
+	}
+
+	var register REGISTER
+	if v, ok := REGISTERS[arguments[1]]; !ok {
+		return nil, fmt.Errorf("Unknown register %s for DATA instruction", arguments[1])
+	} else {
+		register = v
+	}
+
+	if arguments[4] == "%" {
+		return DATA{register, SYMBOL{arguments[5]}}, nil
+	} else {
+		var value uint64
+		var err error
+		// parse in base 16 or 10
+		if arguments[3] == "0x" {
+			value, err = strconv.ParseUint(strings.Replace(arguments[2], "0x", "", -1), 16, 16)
+		} else {
+			value, err = strconv.ParseUint(arguments[2], 10, 16)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		return DATA{register, NUMBER{uint16(value)}}, nil
+	}
+
 }

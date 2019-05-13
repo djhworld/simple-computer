@@ -14,6 +14,7 @@ const USER_CODE_START = uint16(0x0500)
 
 var inputFile = flag.String("i", "", "input file (default: stdin)")
 var outputFile = flag.String("o", "", "output file (default: stdout)")
+var render = flag.Bool("s", false, "output assembly as string")
 
 func exitWithError(message string, err error, exitCode int) {
 	fmt.Fprintln(os.Stderr, message, err)
@@ -38,19 +39,35 @@ func main() {
 	}
 
 	asm := asm.Assembler{}
-	rawIns, err := asm.Process(USER_CODE_START, instructions)
-	if err != nil {
-		exitWithError("error assembling input: ", err, 104)
-	}
 
-	writer, err := getWriterFor(*outputFile)
-	if err != nil {
-		exitWithError("error getting output handle: ", err, 104)
-	}
-	defer writer.Close()
+	if *render == false {
+		rawIns, err := asm.Process(USER_CODE_START, instructions)
+		if err != nil {
+			exitWithError("error assembling input: ", err, 104)
+		}
 
-	if err := binary.Write(writer, binary.LittleEndian, rawIns); err != nil {
-		exitWithError("error writing output handle: ", err, 5)
+		writer, err := getWriterFor(*outputFile)
+		if err != nil {
+			exitWithError("error getting output handle: ", err, 104)
+		}
+		defer writer.Close()
+
+		if err := binary.Write(writer, binary.LittleEndian, rawIns); err != nil {
+			exitWithError("error writing output handle: ", err, 5)
+		}
+	} else {
+		str, err := asm.ToString(USER_CODE_START, instructions)
+		if err != nil {
+			exitWithError("error assembling input: ", err, 104)
+		}
+
+		writer, err := getWriterFor(*outputFile)
+		if err != nil {
+			exitWithError("error getting output handle: ", err, 104)
+		}
+		defer writer.Close()
+
+		fmt.Fprint(writer, str)
 	}
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/djhworld/simple-computer/io"
 	"github.com/go-gl/gl/v3.2-compatibility/gl"
@@ -32,7 +33,9 @@ func NewGlfwIO(screenChannel chan *[160][240]byte, keyPressChannel chan *io.KeyP
 }
 
 func (i *GlfwIO) Run() {
+	clock := time.Tick(33 * time.Millisecond)
 	for {
+		<-clock
 		select {
 		case <-i.quitChannel:
 			i.glfwDisplay.Destroy()
@@ -142,10 +145,10 @@ func (s *glfwDisplay) DrawFrame(screenData *[160][240]byte) {
 		for x := 0; x < 240; x++ {
 			var pixel byte = screenData[y][x]
 			if pixel > 0 {
-				gl.Color3ub(0, 255, 0)
+				gl.Color3ub(220, 220, 220)
 				gl.Vertex2i(int32(x), int32(y))
 			} else {
-				gl.Color3ub(0, 0, 0)
+				gl.Color3ub(50, 50, 50)
 				gl.Vertex2i(int32(x), int32(y))
 			}
 		}

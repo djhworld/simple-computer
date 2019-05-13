@@ -259,7 +259,7 @@ func TestTwoRegInstructions(t *testing.T) {
 	}
 
 	for ins, expected := range TABLE {
-		if emit, err := ins.Emit(nil); err == nil {
+		if emit, err := ins.Emit(nil, nil); err == nil {
 			if reflect.DeepEqual(emit, expected) == false {
 				t.Logf("Expected %v got %v when testing %s", expected, emit, ins)
 				t.FailNow()
@@ -326,7 +326,7 @@ func TestOneRegInstructions(t *testing.T) {
 	}
 
 	for ins, expected := range TABLE {
-		if emit, err := ins.Emit(nil); err == nil {
+		if emit, err := ins.Emit(nil, nil); err == nil {
 			if reflect.DeepEqual(emit, expected) == false {
 				t.Logf("Expected %v got %v when testing %s", expected, emit, ins)
 				t.FailNow()
@@ -340,10 +340,14 @@ func TestOneRegInstructions(t *testing.T) {
 
 func TestDATAInstructionsString(t *testing.T) {
 	var TABLE map[Instruction]string = map[Instruction]string{
-		DATA{REG0, 0x0001}: "DATA R0, 0x0001",
-		DATA{REG1, 0x0002}: "DATA R1, 0x0002",
-		DATA{REG2, 0x0003}: "DATA R2, 0x0003",
-		DATA{REG3, 0x0004}: "DATA R3, 0x0004",
+		DATA{REG0, NUMBER{0x0001}}: "DATA R0, 0x0001",
+		DATA{REG1, NUMBER{0x0002}}: "DATA R1, 0x0002",
+		DATA{REG2, NUMBER{0x0003}}: "DATA R2, 0x0003",
+		DATA{REG3, NUMBER{0x0004}}: "DATA R3, 0x0004",
+		DATA{REG0, SYMBOL{"aaa"}}:  "DATA R0, %aaa",
+		DATA{REG1, SYMBOL{"bbb"}}:  "DATA R1, %bbb",
+		DATA{REG2, SYMBOL{"ccc"}}:  "DATA R2, %ccc",
+		DATA{REG3, SYMBOL{"ddd"}}:  "DATA R3, %ddd",
 	}
 
 	for ins, expected := range TABLE {
@@ -356,14 +360,33 @@ func TestDATAInstructionsString(t *testing.T) {
 
 func TestDATAInstruction(t *testing.T) {
 	var TABLE map[Instruction][]uint16 = map[Instruction][]uint16{
-		DATA{REG0, 0x0001}: []uint16{0x20, 0x0001},
-		DATA{REG1, 0x0002}: []uint16{0x21, 0x0002},
-		DATA{REG2, 0x0003}: []uint16{0x22, 0x0003},
-		DATA{REG3, 0x0004}: []uint16{0x23, 0x0004},
+		DATA{REG0, NUMBER{0x0001}}: []uint16{0x20, 0x0001},
+		DATA{REG1, NUMBER{0x0002}}: []uint16{0x21, 0x0002},
+		DATA{REG2, NUMBER{0x0003}}: []uint16{0x22, 0x0003},
+		DATA{REG3, NUMBER{0x0004}}: []uint16{0x23, 0x0004},
+		DATA{REG0, SYMBOL{"foo"}}:  []uint16{0x20, 0xA000},
+		DATA{REG1, SYMBOL{"bar"}}:  []uint16{0x21, 0xB000},
+		DATA{REG2, SYMBOL{"baz"}}:  []uint16{0x22, 0xC000},
+		DATA{REG3, SYMBOL{"bee"}}:  []uint16{0x23, 0xD000},
+	}
+
+	dummySymbolResolver := func(s SYMBOL) (uint16, error) {
+		switch s.Name {
+		case "foo":
+			return 0xA000, nil
+		case "bar":
+			return 0xB000, nil
+		case "baz":
+			return 0xC000, nil
+		case "bee":
+			return 0xD000, nil
+		default:
+			return 0x0000, fmt.Errorf("received unknown symbol")
+		}
 	}
 
 	for ins, expected := range TABLE {
-		if emit, err := ins.Emit(nil); err == nil {
+		if emit, err := ins.Emit(nil, dummySymbolResolver); err == nil {
 			if reflect.DeepEqual(emit, expected) == false {
 				t.Logf("Expected %v got %v when testing %s", expected, emit, ins)
 				t.FailNow()
@@ -427,7 +450,7 @@ func TestIOInstructions(t *testing.T) {
 	}
 
 	for ins, expected := range TABLE {
-		if emit, err := ins.Emit(nil); err == nil {
+		if emit, err := ins.Emit(nil, nil); err == nil {
 			if reflect.DeepEqual(emit, expected) == false {
 				t.Logf("Expected %v got %v when testing %s", expected, emit, ins)
 				t.FailNow()
@@ -470,7 +493,7 @@ func TestJMPInstruction(t *testing.T) {
 	}
 
 	for ins, expected := range TABLE {
-		if emit, err := ins.Emit(dummyLabelResolver); err == nil {
+		if emit, err := ins.Emit(dummyLabelResolver, nil); err == nil {
 			if reflect.DeepEqual(emit, expected) == false {
 				t.Logf("Expected %v got %v when testing %s", expected, emit, ins)
 				t.FailNow()
@@ -494,13 +517,63 @@ func TestCLFInstructionString(t *testing.T) {
 		}
 	}
 }
+
+func TestCALLInstructionString(t *testing.T) {
+	var TABLE map[Instruction]string = map[Instruction]string{
+		CALL{LABEL{"foo"}}: "CALL foo",
+		CALL{LABEL{"bar"}}: "CALL bar",
+	}
+
+	for ins, expected := range TABLE {
+		if ins.String() != expected {
+			t.Logf("Expected %s got %s when testing %s", expected, ins.String(), ins)
+			t.FailNow()
+		}
+	}
+}
+func TestCALLInstruction(t *testing.T) {
+	var TABLE map[Instruction][]uint16 = map[Instruction][]uint16{
+		CALL{LABEL{"foo"}}: []uint16{0x23, 0x1234, 0x40, 0x0001},
+		CALL{LABEL{"bar"}}: []uint16{0x23, 0x1234, 0x40, 0x0002},
+	}
+	dummyLabelResolver := func(l LABEL) (uint16, error) {
+		if l.Name == "foo" {
+			return 0x0001, nil
+		} else if l.Name == "bar" {
+			return 0x0002, nil
+		}
+
+		return 0x0000, fmt.Errorf("received unknown label")
+	}
+
+	dummySymbolResolver := func(s SYMBOL) (uint16, error) {
+		if s.Name == "NEXTINSTRUCTION" {
+			return 0x1234, nil
+		}
+
+		return 0x0000, fmt.Errorf("received unknown label")
+	}
+
+
+	for ins, expected := range TABLE {
+		if emit, err := ins.Emit(dummyLabelResolver, dummySymbolResolver); err == nil {
+			if reflect.DeepEqual(emit, expected) == false {
+				t.Logf("Expected %v got %v when testing %s", expected, emit, ins)
+				t.FailNow()
+			}
+		} else {
+			t.Logf("Got error %v when testing %s", err, ins)
+			t.FailNow()
+		}
+	}
+}
 func TestCLFInstruction(t *testing.T) {
 	var TABLE map[Instruction][]uint16 = map[Instruction][]uint16{
 		CLF{}: []uint16{0x60},
 	}
 
 	for ins, expected := range TABLE {
-		if emit, err := ins.Emit(nil); err == nil {
+		if emit, err := ins.Emit(nil, nil); err == nil {
 			if reflect.DeepEqual(emit, expected) == false {
 				t.Logf("Expected %v got %v when testing %s", expected, emit, ins)
 				t.FailNow()
@@ -602,7 +675,7 @@ func TestJMPFlagInstructions(t *testing.T) {
 	}
 
 	for i, ins := range instructions {
-		if emit, err := ins.Emit(dummyLabelResolver); err == nil {
+		if emit, err := ins.Emit(dummyLabelResolver, nil); err == nil {
 			if reflect.DeepEqual(emit, expected[i]) == false {
 				t.Logf("Expected %v got %v when testing %s", expected[i], emit, ins)
 				t.FailNow()

@@ -16,30 +16,6 @@ import (
 	"github.com/djhworld/simple-computer/io"
 )
 
-/*
-	instructions := []uint16{
-		0x20,
-		0x0100,
-
-		0x21,
-		0x01,
-		0x22, // DATA R2
-		0x000F,
-		0x7E, // OUT Addr, R2
-		0x73, // IN Data, R3
-		0xEA, // XOR, R2, R2
-		0x7E, // OUT Addr, R2
-		0xCF, // AND R3, R3
-		0x51, // JMPZ
-		0x04,
-		0x13, //ST R0, R3
-		0x84, //ADD R1, R0
-		0x60, //ADD R1, R0
-		0x40,
-		0x04,
-	}
-*/
-
 func init() {
 	// This is needed to arrange that main() runs on main thread.
 	// See documentation for functions that are only allowed to be called from the main thread.
@@ -70,7 +46,7 @@ func run(bin []uint16) {
 	quitChannel := make(chan bool, 10)
 
 	glfw := NewGlfwIO(screenChannel, keyPressChannel, quitChannel)
-	if err := glfw.Init("simple-computer"); err != nil {
+	if err := glfw.Init(fmt.Sprintf("%s", *binFile)); err != nil {
 		fmt.Fprintln(os.Stderr, "error received initialising GLFW instnace", err)
 		os.Exit(5)
 	}

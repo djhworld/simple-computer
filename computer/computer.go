@@ -94,6 +94,7 @@ func (c *SimpleComputer) Run(tickInterval <-chan time.Time, printStateConfig Pri
 	c.putValueInRAM(0xFEFE, 0x0040) //JMP back to code region start if IAR reaches the end
 	c.putValueInRAM(0xFEFF, CODE_REGION_START)
 
+	// start at offet of user code
 	c.cpu.SetIAR(CODE_REGION_START)
 	go c.screenControl.Run()
 

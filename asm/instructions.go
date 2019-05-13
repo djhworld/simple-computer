@@ -8,6 +8,7 @@ import (
 )
 
 type LabelResolver func(LABEL) (uint16, error)
+type SymbolResolver func(SYMBOL) (uint16, error)
 
 type REGISTER int
 type IO_MODE string
@@ -26,7 +27,7 @@ const (
 
 type Instruction interface {
 	String() string
-	Emit(LabelResolver) ([]uint16, error)
+	Emit(LabelResolver, SymbolResolver) ([]uint16, error)
 	Size() int
 }
 
@@ -39,14 +40,14 @@ type Instruction interface {
 // 0x0023 = DATA R3
 type DATA struct {
 	ToRegister REGISTER
-	Data       uint16
+	Data       marker
 }
 
 func (d DATA) Size() int {
 	return 2
 }
 
-func (d DATA) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (d DATA) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16
 	switch d.ToRegister {
 	case REG0:
@@ -59,12 +60,28 @@ func (d DATA) Emit(labelResolver LabelResolver) ([]uint16, error) {
 		instruction = 0x0023
 	}
 
-	return []uint16{instruction, d.Data}, nil
+	if v, ok := d.Data.(SYMBOL); ok {
+		//TODO get value from symbols map....
+		resolvedSymbol, err := symbolResolver(v)
+		if err != nil {
+			return nil, err
+		}
+		return []uint16{instruction, resolvedSymbol}, nil
+	} else if v, ok := d.Data.(NUMBER); ok {
+		return []uint16{instruction, v.Value}, nil
+	} else {
+		return nil, fmt.Errorf("Unsupported operand for Data %v", d.Data)
+	}
 }
 
-func (s DATA) String() string {
-	result := fmt.Sprintf("DATA R%d, %s", s.ToRegister, utils.ValueToString(s.Data))
-	return result
+func (d DATA) String() string {
+	if v, ok := d.Data.(NUMBER); ok {
+		return fmt.Sprintf("DATA R%d, %s", d.ToRegister, utils.ValueToString(v.Value))
+	} else if v, ok := d.Data.(SYMBOL); ok {
+		return fmt.Sprintf("DATA R%d, %s", d.ToRegister, v.String())
+	}
+
+	return fmt.Sprintf("DATA R%d, %v", d.ToRegister, d.Data)
 }
 
 // SHL
@@ -81,7 +98,7 @@ func (s SHL) Size() int {
 	return 1
 }
 
-func (s SHL) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (s SHL) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16
 	switch s.Register {
 	case REG0:
@@ -116,7 +133,7 @@ func (s SHR) Size() int {
 	return 1
 }
 
-func (s SHR) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (s SHR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16
 	switch s.Register {
 	case REG0:
@@ -152,7 +169,7 @@ func (j JR) Size() int {
 	return 1
 }
 
-func (j JR) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (j JR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16
 	switch j.Register {
 	case REG0:
@@ -187,7 +204,7 @@ func (n NOT) Size() int {
 	return 1
 }
 
-func (n NOT) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (n NOT) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16
 	switch n.Register {
 	case REG0:
@@ -241,7 +258,7 @@ func (s STORE) Size() int {
 	return 1
 }
 
-func (s STORE) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (s STORE) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var offset uint16
 
 	switch s.FromRegister {
@@ -297,7 +314,7 @@ func (l LOAD) Size() int {
 	return 1
 }
 
-func (l LOAD) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (l LOAD) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var offset uint16
 
 	switch l.MemoryAddressReg {
@@ -341,7 +358,7 @@ func (o OUT) Size() int {
 	return 1
 }
 
-func (o OUT) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (o OUT) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16
 
 	switch o.IoMode {
@@ -381,7 +398,7 @@ func (i IN) Size() int {
 	return 1
 }
 
-func (i IN) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (i IN) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16
 
 	switch i.IoMode {
@@ -431,7 +448,7 @@ func (x XOR) Size() int {
 	return 1
 }
 
-func (x XOR) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (x XOR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var offset uint16
 
 	switch x.ARegister {
@@ -485,7 +502,7 @@ func (o OR) Size() int {
 	return 1
 }
 
-func (o OR) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (o OR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var offset uint16
 
 	switch o.ARegister {
@@ -539,7 +556,7 @@ func (a AND) Size() int {
 	return 1
 }
 
-func (a AND) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (a AND) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var offset uint16
 
 	switch a.ARegister {
@@ -593,7 +610,7 @@ func (c CMP) Size() int {
 	return 1
 }
 
-func (c CMP) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (c CMP) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var offset uint16
 
 	switch c.ARegister {
@@ -627,7 +644,7 @@ func (c CLF) Size() int {
 	return 1
 }
 
-func (c CLF) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (c CLF) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	return []uint16{0x60}, nil
 }
 
@@ -645,7 +662,7 @@ func (j JMPF) Size() int {
 	return 2
 }
 
-func (j JMPF) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (j JMPF) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	flags := strings.Join(j.Flags, "")
 
 	var instruction uint16
@@ -705,7 +722,7 @@ type JMP struct {
 	JumpLoc LABEL
 }
 
-func (j JMP) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (j JMP) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var instruction uint16 = 0x0040
 	resolvedAddress, err := labelResolver(j.JumpLoc)
 	if err != nil {
@@ -750,7 +767,7 @@ func (a ADD) Size() int {
 	return 1
 }
 
-func (a ADD) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (a ADD) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	var offset uint16
 
 	switch a.ARegister {
@@ -774,21 +791,77 @@ func (a ADD) String() string {
 	return result
 }
 
-type LABEL struct {
+// PLACEHOLDER INSTRUCTIONS - these are used by the assembler
+type DEFLABEL struct {
 	Name string
 }
 
-func (l LABEL) Size() int {
+func (l DEFLABEL) Size() int {
 	return 0
 }
 
-func (l LABEL) Emit(labelResolver LabelResolver) ([]uint16, error) {
+func (l DEFLABEL) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	// noop
 	return nil, nil
 }
 
-func (l LABEL) String() string {
+func (l DEFLABEL) String() string {
 	return l.Name
+}
+
+type DEFSYMBOL struct {
+	Name  string
+	Value uint16
+}
+
+func (s DEFSYMBOL) Size() int {
+	return 0
+}
+
+func (s DEFSYMBOL) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
+	// noop
+	return nil, nil
+}
+
+func (s DEFSYMBOL) String() string {
+	return fmt.Sprintf("%%%s = 0x%X", s.Name, s.Value)
+}
+
+// PSUEDO INSTRUCTIONS - these are  composite instructions that may map to multiple opcodes
+
+type CALL struct {
+	Routine LABEL
+}
+
+func (c CALL) Size() int {
+	return 4
+}
+
+func (c CALL) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
+	nextInsAddress, err := symbolResolver(SYMBOL{NEXTINSTRUCTION})
+	if err != nil {
+		return nil, err
+	}
+
+	compositeInstructions := []Instruction{
+		DATA{REG3, NUMBER{nextInsAddress}},
+		JMP{c.Routine},
+	}
+
+	emitted := []uint16{}
+	for _, ins := range compositeInstructions {
+		if e, err := ins.Emit(labelResolver, symbolResolver); err == nil {
+			emitted = append(emitted, e...)
+		} else {
+			return nil, err
+		}
+	}
+
+	return emitted, nil
+}
+
+func (c CALL) String() string {
+	return fmt.Sprintf("CALL %s", c.Routine)
 }
 
 // Instructions - useful list data structure for convienience
@@ -816,16 +889,25 @@ func (s *Instructions) String() string {
 	result := strings.Builder{}
 
 	for _, ins := range s.instructions {
-		if _, ok := ins.(LABEL); !ok {
-			result.WriteString("\t")
-			result.WriteString(ins.String())
-			result.WriteString("\n")
-		} else {
-			l := ins.(LABEL)
+		if _, ok := ins.(DEFLABEL); ok {
+			l := ins.(DEFLABEL)
 			result.WriteString("\n")
 			result.WriteString(l.Name)
 			result.WriteString(":\n")
+			continue
 		}
+
+		if _, ok := ins.(DEFSYMBOL); ok {
+			s := ins.(DEFSYMBOL)
+			result.WriteString("\n")
+			result.WriteString(s.String())
+			result.WriteString("\n")
+			continue
+		}
+
+		result.WriteString("\t")
+		result.WriteString(ins.String())
+		result.WriteString("\n")
 	}
 
 	return result.String()
