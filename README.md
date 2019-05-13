@@ -6,7 +6,6 @@ Starting from NAND gates, and moving up through to registers, RAM, the ALU, the 
 
 All the components of the system are based on logic gates and the way they are connected together via the system bus.   
 
-
 ![text writer](_programs/screenshots/text-writer.png)
 
 # Specs
@@ -18,8 +17,6 @@ All the components of the system are based on logic gates and the way they are c
 - 65K RAM
 - 240x160 screen resolution 
 - 4x 16-bit registers (`R0`, `R1`, `R2`, `R3`)
-
-
 
 Missing features
 
@@ -79,13 +76,13 @@ The following I/O devices are supported by the computer.
 
 There is no memory management unit or protected areas of memory.
 
-However the [assembler](cmd/assembler/README.md) and simulator will start executing user code from offset `0x0500`
+However the [assembler](cmd/assembler/) and simulator will start executing user code from offset `0x0500`
 
 # Assembler
 
 Machine code can be written in text and assembled using a crude assembler I wrote.
 
-See [assembler](cmd/assembler/README.md) for more information.
+See [assembler](cmd/assembler/) for more information.
 
 # Building
 
@@ -121,3 +118,15 @@ Example of running the `brush.bin` program
 # Example programs
 
 You can see some example programs I wrote under [_programs/](/_programs/), note the ASM code I wrote for these is very bad and I lost my sanity a bit when writing them.
+
+
+# Why bother? 
+
+I'm taking myself on a journey, a hardware journey you might say. I want to understand how computers work at a lower level but not quite low enough for the physics/digital electronics side of things. 
+
+Just enough to see all the pieces of the system interacting. I remember doing a lot of this stuff in school but I'd say my education seemed to focus on the concepts (Von-Neumann architecture, fetch-decode-execute) rather than the actual construction of a CPU. 
+
+This simple computer is the start of that journey, it's actually been a very rewarding little project.
+
+I hope to move onto playing around with X86/ARM/RISC-V next although I suspect it will be quite a leap (of faith)
+
