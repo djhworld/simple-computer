@@ -8,6 +8,8 @@ All the components of the system are based on logic gates and the way they are c
 
 ![text writer](_programs/screenshots/text-writer.png)
 
+For a write up about this project, see my blog post about it here https://djhworld.github.io/post/2019/05/21/i-dont-know-how-cpus-work-so-i-simulated-one-in-code/
+
 # Specs
 
 - `~0.006mhz` 
