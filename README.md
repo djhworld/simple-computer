@@ -87,6 +87,10 @@ Machine code can be written in text and assembled using a crude assembler I wrot
 
 See [assembler](cmd/assembler/) for more information.
 
+# Compiler
+
+[@realkompot](https://github.com/realkompot) made an awesome compiler https://github.com/realkompot/llvm-project-scott-cpu for this using LLVM that produces working binaries to run on the simulator, check out the cool little snake game example https://github.com/realkompot/llvm-project-scott-cpu/tree/scott-cpu/_scott-cpu
+
 # Building
 
 Requirements
