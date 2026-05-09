@@ -3,12 +3,13 @@ package io
 import (
 	"testing"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/components"
 )
 
 func TestAdapterPutsKeycodeRegisterOnBusAndClearsIt(t *testing.T) {
 	ioBus := components.NewIOBus()
-	mainBus := components.NewBus(BUS_WIDTH)
+	mainBus := components.NewBus(arch.BUS_WIDTH)
 
 	adapter := NewKeyboardAdapter()
 	adapter.Connect(ioBus, mainBus)
@@ -42,7 +43,7 @@ func TestAdapterPutsKeycodeRegisterOnBusAndClearsIt(t *testing.T) {
 func checkBus(b *components.Bus, expected uint16) bool {
 	var x int = 0
 	var result uint16
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if b.GetOutputWire(i) {
 			result = result | (1 << uint16(x))
 		} else {

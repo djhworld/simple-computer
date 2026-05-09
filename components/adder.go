@@ -1,15 +1,16 @@
 package components
 
 import (
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 )
 
 type Adder struct {
 	inputs   [32]circuit.Wire
 	carryIn  circuit.Wire
-	adds     [16]Add2
+	adds     [arch.BUS_WIDTH]Add2
 	carryOut circuit.Wire
-	outputs  [16]circuit.Wire
+	outputs  [arch.BUS_WIDTH]circuit.Wire
 	next     Component
 }
 

@@ -3,6 +3,8 @@ package components
 import (
 	"fmt"
 	"testing"
+
+	"github.com/djhworld/simple-computer/arch"
 )
 
 func TestAdder(t *testing.T) {
@@ -32,7 +34,7 @@ func testAdderReturnsCorrectResult(inputA int, inputB int, carryIn bool, expecte
 
 	a.Update(carryIn)
 
-	result := getValueOfOutput(a, BUS_WIDTH)
+	result := getValueOfOutput(a, arch.BUS_WIDTH)
 
 	if result != expectedResult {
 		t.Log(fmt.Sprintf("Expected output of %d but got %d", expectedResult, result))

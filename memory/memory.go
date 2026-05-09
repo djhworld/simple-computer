@@ -8,8 +8,6 @@ import (
 	"github.com/djhworld/simple-computer/components"
 )
 
-const BUS_WIDTH = 16
-
 type Cell struct {
 	value components.Register
 	gates [3]circuit.ANDGate

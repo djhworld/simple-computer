@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 )
 
 type DummyComponent struct {
-	wires [BUS_WIDTH]circuit.Wire
+	wires [arch.BUS_WIDTH]circuit.Wire
 	next  Component
 }
 
@@ -73,12 +74,12 @@ func TestEnablerWithEnableOn(t *testing.T) {
 	d.Update()
 	enabler.Update(true)
 
-	results := [BUS_WIDTH]bool{}
+	results := [arch.BUS_WIDTH]bool{}
 	for i, w := range enabler.outputs {
 		results[i] = w.Get()
 	}
 
-	if results != [BUS_WIDTH]bool{false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true} {
+	if results != [arch.BUS_WIDTH]bool{false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true} {
 		t.FailNow()
 	}
 }
@@ -103,7 +104,7 @@ func testLeftShifter(input int, shiftIn bool, expectedOutput int, expectedShiftO
 	l := NewLeftShifter()
 	setWireOnComponent16(l, input)
 	l.Update(shiftIn)
-	if output := getValueOfOutput(l, BUS_WIDTH); output != expectedOutput {
+	if output := getValueOfOutput(l, arch.BUS_WIDTH); output != expectedOutput {
 		t.Logf("expected 0x%X got 0x%X", expectedOutput, output)
 		t.FailNow()
 	}
@@ -134,7 +135,7 @@ func testRightShifter(input int, shiftIn bool, expectedOutput int, expectedShift
 	r := NewRightShifter()
 	setWireOnComponent16(r, input)
 	r.Update(shiftIn)
-	output := getValueOfOutput(r, BUS_WIDTH)
+	output := getValueOfOutput(r, arch.BUS_WIDTH)
 	if output != expectedOutput {
 		t.Logf("expected 0x%X got 0x%X", expectedOutput, output)
 		t.FailNow()
@@ -166,12 +167,12 @@ func TestNOTer(t *testing.T) {
 
 	n.Update()
 
-	results := [BUS_WIDTH]bool{}
+	results := [arch.BUS_WIDTH]bool{}
 	for i, w := range n.outputs {
 		results[i] = w.Get()
 	}
 
-	if results != [BUS_WIDTH]bool{true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false} {
+	if results != [arch.BUS_WIDTH]bool{true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false} {
 		t.FailNow()
 	}
 
@@ -228,12 +229,12 @@ func TestANDer(t *testing.T) {
 
 	a.Update()
 
-	results := [BUS_WIDTH]bool{}
+	results := [arch.BUS_WIDTH]bool{}
 	for i, w := range a.outputs {
 		results[i] = w.Get()
 	}
 
-	if results != [BUS_WIDTH]bool{false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true} {
+	if results != [arch.BUS_WIDTH]bool{false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true} {
 		t.FailNow()
 	}
 
@@ -290,12 +291,12 @@ func TestORer(t *testing.T) {
 
 	o.Update()
 
-	results := [BUS_WIDTH]bool{}
+	results := [arch.BUS_WIDTH]bool{}
 	for i, w := range o.outputs {
 		results[i] = w.Get()
 	}
 
-	if results != [BUS_WIDTH]bool{false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true} {
+	if results != [arch.BUS_WIDTH]bool{false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true} {
 		t.FailNow()
 	}
 
@@ -352,12 +353,12 @@ func TestXORer(t *testing.T) {
 
 	o.Update()
 
-	results := [BUS_WIDTH]bool{}
+	results := [arch.BUS_WIDTH]bool{}
 	for i, w := range o.outputs {
 		results[i] = w.Get()
 	}
 
-	if results != [BUS_WIDTH]bool{false, true, true, false, false, true, true, false, false, true, true, false, false, true, true, false} {
+	if results != [arch.BUS_WIDTH]bool{false, true, true, false, false, true, true, false, false, true, true, false, false, true, true, false} {
 		t.FailNow()
 	}
 
@@ -462,7 +463,7 @@ func testComparatorReturnsCorrectResult(inputA int, inputB int, expectedIsEqual 
 
 func TestIsZero(t *testing.T) {
 	z := NewIsZero()
-	for i := 0; i < BUS_WIDTH; i++ {
+	for i := 0; i < arch.BUS_WIDTH; i++ {
 		z.SetInputWire(i, false)
 	}
 
@@ -473,7 +474,7 @@ func TestIsZero(t *testing.T) {
 	}
 
 	z = NewIsZero()
-	for i := 0; i < BUS_WIDTH; i++ {
+	for i := 0; i < arch.BUS_WIDTH; i++ {
 		z.SetInputWire(i, true)
 	}
 
@@ -483,7 +484,7 @@ func TestIsZero(t *testing.T) {
 		t.FailNow()
 	}
 
-	for i := 0; i < BUS_WIDTH; i++ {
+	for i := 0; i < arch.BUS_WIDTH; i++ {
 		z := NewIsZero()
 
 		z.SetInputWire(i, true)
@@ -500,8 +501,8 @@ func TestIsZero(t *testing.T) {
 }
 
 func TestBusOne(t *testing.T) {
-	inputBus := NewBus(BUS_WIDTH)
-	outputBus := NewBus(BUS_WIDTH)
+	inputBus := NewBus(arch.BUS_WIDTH)
+	outputBus := NewBus(arch.BUS_WIDTH)
 	b := NewBusOne(inputBus, outputBus)
 	for i := 0; i < 65536; i++ {
 		testBusOneReturnsCorrectResult(b, inputBus, outputBus, i, false, i, t)
@@ -520,7 +521,7 @@ func testBusOneReturnsCorrectResult(b *BusOne, inputBus, outputBus *Bus, input i
 	}
 
 	b.Update()
-	output := getValueOfOutput(outputBus, BUS_WIDTH)
+	output := getValueOfOutput(outputBus, arch.BUS_WIDTH)
 
 	if output != expectedOutput {
 		t.Log(fmt.Sprintf("Expected output to be to be of 0x%X but got 0x%X", expectedOutput, output))

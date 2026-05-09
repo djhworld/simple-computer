@@ -3,11 +3,12 @@ package cpu
 import (
 	"testing"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/components"
 	"github.com/djhworld/simple-computer/memory"
 )
 
-var BUS *components.Bus = components.NewBus(BUS_WIDTH)
+var BUS *components.Bus = components.NewBus(arch.BUS_WIDTH)
 var MEMORY *memory.Memory64K = memory.NewMemory64K(BUS)
 
 func SetUpCPU() *CPU {

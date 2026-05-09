@@ -3,13 +3,14 @@ package alu
 import (
 	"testing"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/components"
 )
 
-var inputABus *components.Bus = components.NewBus(BUS_WIDTH)
-var inputBBus *components.Bus = components.NewBus(BUS_WIDTH)
-var outputBus *components.Bus = components.NewBus(BUS_WIDTH)
-var flagsBus *components.Bus = components.NewBus(BUS_WIDTH)
+var inputABus *components.Bus = components.NewBus(arch.BUS_WIDTH)
+var inputBBus *components.Bus = components.NewBus(arch.BUS_WIDTH)
+var outputBus *components.Bus = components.NewBus(arch.BUS_WIDTH)
+var flagsBus *components.Bus = components.NewBus(arch.BUS_WIDTH)
 
 func TestAluAdd(t *testing.T) {
 	alu := NewALU(inputABus, inputBBus, outputBus, flagsBus)
@@ -334,7 +335,7 @@ func setOp(a *ALU, value uint16) {
 func getValueOfBus(bus *components.Bus) uint16 {
 	var x uint16 = 0
 	var result uint16
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if bus.GetOutputWire(i) {
 			result = result | (1 << x)
 		} else {

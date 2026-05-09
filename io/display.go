@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
 )
@@ -40,7 +41,7 @@ func NewDisplaydAdapter() *DisplayAdapter {
 func (k *DisplayAdapter) Connect(ioBus *components.IOBus, mainBus *components.Bus) {
 	k.ioBus = ioBus
 	k.mainBus = mainBus
-	k.screenBus = components.NewBus(BUS_WIDTH)
+	k.screenBus = components.NewBus(arch.BUS_WIDTH)
 	k.displayRAM = newDisplayRAM(k.mainBus, k.screenBus)
 
 	k.displayAdapterActiveBit = components.NewBit()
@@ -50,7 +51,7 @@ func (k *DisplayAdapter) Connect(ioBus *components.IOBus, mainBus *components.Bu
 	k.isAddressOutputModeGate = *components.NewANDGate3()
 	k.inputMARSetGate = *components.NewANDGate5()
 	k.displayRAMSetGate = *components.NewANDGate5()
-	k.inputMAROutBus = components.NewBus(BUS_WIDTH)
+	k.inputMAROutBus = components.NewBus(arch.BUS_WIDTH)
 
 	k.writeToRAM = components.NewBit()
 	k.writeToRAM.Update(false, true)

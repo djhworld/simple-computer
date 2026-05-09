@@ -1,11 +1,10 @@
 package components
 
 import (
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/utils"
 )
-
-const BUS_WIDTH = 16
 
 type Component interface {
 	ConnectOutput(Component)
@@ -14,9 +13,9 @@ type Component interface {
 }
 
 type Enabler struct {
-	inputs  [BUS_WIDTH]circuit.Wire
-	gates   [BUS_WIDTH]circuit.ANDGate
-	outputs [BUS_WIDTH]circuit.Wire
+	inputs  [arch.BUS_WIDTH]circuit.Wire
+	gates   [arch.BUS_WIDTH]circuit.ANDGate
+	outputs [arch.BUS_WIDTH]circuit.Wire
 	next    Component
 }
 
@@ -56,8 +55,8 @@ func (e *Enabler) Update(enable bool) {
 
 // TODO not sure if this is exactly how this should look...
 type LeftShifter struct {
-	inputs   [BUS_WIDTH]circuit.Wire
-	outputs  [BUS_WIDTH]circuit.Wire
+	inputs   [arch.BUS_WIDTH]circuit.Wire
+	outputs  [arch.BUS_WIDTH]circuit.Wire
 	shiftIn  circuit.Wire
 	shiftOut circuit.Wire
 	next     Component
@@ -105,10 +104,10 @@ func (l *LeftShifter) Update(shiftIn bool) {
 }
 
 type RightShifter struct {
-	inputs   [BUS_WIDTH]circuit.Wire
+	inputs   [arch.BUS_WIDTH]circuit.Wire
 	shiftIn  circuit.Wire
 	shiftOut circuit.Wire
-	outputs  [BUS_WIDTH]circuit.Wire
+	outputs  [arch.BUS_WIDTH]circuit.Wire
 	next     Component
 }
 
@@ -154,7 +153,7 @@ func (r *RightShifter) Update(shiftIn bool) {
 }
 
 type IsZero struct {
-	inputs  [BUS_WIDTH]circuit.Wire
+	inputs  [arch.BUS_WIDTH]circuit.Wire
 	orer    ORer
 	notGate circuit.NOTGate
 	output  circuit.Wire
@@ -188,7 +187,7 @@ func (z *IsZero) SetInputWire(index int, value bool) {
 func (z *IsZero) Update() {
 	for i, _ := range z.inputs {
 		z.orer.SetInputWire(i, z.inputs[i].Get())
-		z.orer.SetInputWire(i+BUS_WIDTH, z.inputs[i].Get())
+		z.orer.SetInputWire(i+arch.BUS_WIDTH, z.inputs[i].Get())
 	}
 	z.orer.Update()
 
@@ -207,9 +206,9 @@ func (z *IsZero) Update() {
 }
 
 type NOTer struct {
-	inputs  [BUS_WIDTH]circuit.Wire
-	gates   [BUS_WIDTH]circuit.NOTGate
-	outputs [BUS_WIDTH]circuit.Wire
+	inputs  [arch.BUS_WIDTH]circuit.Wire
+	gates   [arch.BUS_WIDTH]circuit.NOTGate
+	outputs [arch.BUS_WIDTH]circuit.Wire
 	next    Component
 }
 
@@ -243,9 +242,9 @@ func (n *NOTer) Update() {
 }
 
 type ANDer struct {
-	inputs  [BUS_WIDTH * 2]circuit.Wire
-	gates   [BUS_WIDTH]circuit.ANDGate
-	outputs [BUS_WIDTH]circuit.Wire
+	inputs  [arch.BUS_WIDTH * 2]circuit.Wire
+	gates   [arch.BUS_WIDTH]circuit.ANDGate
+	outputs [arch.BUS_WIDTH]circuit.Wire
 	next    Component
 }
 
@@ -272,7 +271,7 @@ func (a *ANDer) SetInputWire(index int, value bool) {
 }
 
 func (a *ANDer) Update() {
-	awire := BUS_WIDTH
+	awire := arch.BUS_WIDTH
 	bwire := 0
 	for i, _ := range a.gates {
 		a.gates[i].Update(a.inputs[awire].Get(), a.inputs[bwire].Get())
@@ -283,9 +282,9 @@ func (a *ANDer) Update() {
 }
 
 type ORer struct {
-	inputs  [BUS_WIDTH * 2]circuit.Wire
-	gates   [BUS_WIDTH]circuit.ORGate
-	outputs [BUS_WIDTH]circuit.Wire
+	inputs  [arch.BUS_WIDTH * 2]circuit.Wire
+	gates   [arch.BUS_WIDTH]circuit.ORGate
+	outputs [arch.BUS_WIDTH]circuit.Wire
 	next    Component
 }
 
@@ -312,7 +311,7 @@ func (o *ORer) SetInputWire(index int, value bool) {
 }
 
 func (o *ORer) Update() {
-	awire := BUS_WIDTH
+	awire := arch.BUS_WIDTH
 	bwire := 0
 	for i, _ := range o.gates {
 		o.gates[i].Update(o.inputs[awire].Get(), o.inputs[bwire].Get())
@@ -323,9 +322,9 @@ func (o *ORer) Update() {
 }
 
 type XORer struct {
-	inputs  [BUS_WIDTH * 2]circuit.Wire
-	gates   [BUS_WIDTH]circuit.XORGate
-	outputs [BUS_WIDTH]circuit.Wire
+	inputs  [arch.BUS_WIDTH * 2]circuit.Wire
+	gates   [arch.BUS_WIDTH]circuit.XORGate
+	outputs [arch.BUS_WIDTH]circuit.Wire
 	next    Component
 }
 
@@ -352,7 +351,7 @@ func (o *XORer) SetInputWire(index int, value bool) {
 }
 
 func (o *XORer) Update() {
-	awire := BUS_WIDTH
+	awire := arch.BUS_WIDTH
 	bwire := 0
 	for i, _ := range o.gates {
 		o.gates[i].Update(o.inputs[awire].Get(), o.inputs[bwire].Get())
@@ -428,11 +427,11 @@ func (g *Compare2) Update(inputA, inputB, equalIn, isLargerIn bool) {
 }
 
 type Comparator struct {
-	inputs       [BUS_WIDTH * 2]circuit.Wire
+	inputs       [arch.BUS_WIDTH * 2]circuit.Wire
 	equalIn      circuit.Wire
 	aIsLargerIn  circuit.Wire
-	compares     [BUS_WIDTH]Compare2
-	outputs      [BUS_WIDTH]circuit.Wire
+	compares     [arch.BUS_WIDTH]Compare2
+	outputs      [arch.BUS_WIDTH]circuit.Wire
 	equalOut     circuit.Wire
 	aIsLargerOut circuit.Wire
 	next         Component
@@ -467,7 +466,7 @@ func (c *Comparator) Update() {
 
 	// top 16 bits are <b>, bottom 16 bits are <a>
 	awire := 0
-	bwire := BUS_WIDTH
+	bwire := arch.BUS_WIDTH
 
 	for i := range c.compares {
 		c.compares[i].Update(c.inputs[awire].Get(), c.inputs[bwire].Get(), c.equalIn.Get(), c.aIsLargerIn.Get())
@@ -493,12 +492,12 @@ func (g *Comparator) Larger() bool {
 type BusOne struct {
 	inputBus  *Bus
 	outputBus *Bus
-	inputs    [BUS_WIDTH]circuit.Wire
+	inputs    [arch.BUS_WIDTH]circuit.Wire
 	bus1      circuit.Wire
-	andGates  [BUS_WIDTH - 1]circuit.ANDGate
+	andGates  [arch.BUS_WIDTH - 1]circuit.ANDGate
 	notGate   circuit.NOTGate
 	orGate    circuit.ORGate
-	outputs   [BUS_WIDTH]circuit.Wire
+	outputs   [arch.BUS_WIDTH]circuit.Wire
 	next      Component
 }
 
@@ -538,7 +537,7 @@ func (b *BusOne) Disable() {
 }
 
 func (b *BusOne) Update() {
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		b.inputs[i].Update(b.inputBus.GetOutputWire(i))
 	}
 
@@ -578,7 +577,7 @@ func (b *BusOne) Update() {
 	b.outputs[14].Update(b.andGates[14].Output())
 	b.outputs[15].Update(b.orGate.Output())
 
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		b.outputBus.SetInputWire(i, b.outputs[i].Get())
 	}
 }
@@ -586,7 +585,7 @@ func (b *BusOne) Update() {
 func (b *BusOne) String() string {
 	var output uint16
 	var x int = 0
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if b.outputs[i].Get() {
 			output = output | (1 << uint16(x))
 		} else {

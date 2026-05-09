@@ -4,11 +4,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
 )
-
-const BUS_WIDTH = 16
 
 type KeyPress struct {
 	Value  int
@@ -38,7 +37,7 @@ type KeyboardAdapter struct {
 
 func NewKeyboardAdapter() *KeyboardAdapter {
 	k := new(KeyboardAdapter)
-	k.KeyboardInBus = components.NewBus(BUS_WIDTH)
+	k.KeyboardInBus = components.NewBus(arch.BUS_WIDTH)
 	return k
 }
 

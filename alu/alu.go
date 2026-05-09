@@ -3,6 +3,7 @@ package alu
 import (
 	"fmt"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
 	"github.com/djhworld/simple-computer/utils"
@@ -18,8 +19,6 @@ const (
 	XOR
 	CMP
 )
-
-const BUS_WIDTH = 16
 
 type ALU struct {
 	inputABus      *components.Bus
@@ -109,7 +108,7 @@ func (a *ALU) updateAnder() {
 }
 
 func (a *ALU) updateNotter() {
-	for i := (BUS_WIDTH - 1); i >= 0; i-- {
+	for i := (arch.BUS_WIDTH - 1); i >= 0; i-- {
 		a.notter.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 	a.notter.Update()
@@ -117,7 +116,7 @@ func (a *ALU) updateNotter() {
 }
 
 func (a *ALU) updateLeftShifter() {
-	for i := (BUS_WIDTH - 1); i >= 0; i-- {
+	for i := (arch.BUS_WIDTH - 1); i >= 0; i-- {
 		a.leftShifer.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 	a.leftShifer.Update(a.CarryIn.Get())
@@ -125,7 +124,7 @@ func (a *ALU) updateLeftShifter() {
 }
 
 func (a *ALU) updateRightShifter() {
-	for i := (BUS_WIDTH - 1); i >= 0; i-- {
+	for i := (arch.BUS_WIDTH - 1); i >= 0; i-- {
 		a.rightShifer.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 	a.rightShifer.Update(a.CarryIn.Get())
@@ -139,17 +138,17 @@ func (a *ALU) updateAdder() {
 }
 
 func (a *ALU) wireToEnabler(b components.Component, enablerIndex int) {
-	for i := 0; i < BUS_WIDTH; i++ {
+	for i := 0; i < arch.BUS_WIDTH; i++ {
 		a.enablers[enablerIndex].SetInputWire(i, b.GetOutputWire(i))
 	}
 }
 
 func (a *ALU) setWireOnComponent(b components.Component) {
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		b.SetInputWire(i, a.inputABus.GetOutputWire(i))
 	}
 
-	for i := (BUS_WIDTH * 2) - 1; i >= BUS_WIDTH; i-- {
+	for i := (arch.BUS_WIDTH * 2) - 1; i >= arch.BUS_WIDTH; i-- {
 		b.SetInputWire(i, a.inputBBus.GetOutputWire(i-16))
 	}
 }
@@ -168,7 +167,7 @@ func (a *ALU) String() string {
 	var inputB uint16
 	var output uint16
 	var x uint16 = 0
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if a.inputABus.GetOutputWire(i) {
 			inputA = inputA | (1 << x)
 		} else {
@@ -240,12 +239,12 @@ func (a *ALU) Update() {
 			a.carryOut.Update(a.andGates[2].Output())
 		}
 
-		for i := 0; i < BUS_WIDTH; i++ {
+		for i := 0; i < arch.BUS_WIDTH; i++ {
 			a.isZero.SetInputWire(i, a.enablers[enabler].GetOutputWire(i))
 			a.outputBus.SetInputWire(i, a.enablers[enabler].GetOutputWire(i))
 		}
 	} else {
-		for i := 0; i < BUS_WIDTH; i++ {
+		for i := 0; i < arch.BUS_WIDTH; i++ {
 			a.isZero.SetInputWire(i, true)
 			a.outputBus.SetInputWire(i, false)
 		}

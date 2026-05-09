@@ -48,17 +48,7 @@ func (d DATA) Size() int {
 }
 
 func (d DATA) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16
-	switch d.ToRegister {
-	case REG0:
-		instruction = 0x0020
-	case REG1:
-		instruction = 0x0021
-	case REG2:
-		instruction = 0x0022
-	case REG3:
-		instruction = 0x0023
-	}
+	instruction := dataOpcodes[d.ToRegister]
 
 	if v, ok := d.Data.(SYMBOL); ok {
 		//TODO get value from symbols map....
@@ -99,19 +89,7 @@ func (s SHL) Size() int {
 }
 
 func (s SHL) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16
-	switch s.Register {
-	case REG0:
-		instruction = 0x00A0
-	case REG1:
-		instruction = 0x00A5
-	case REG2:
-		instruction = 0x00AA
-	case REG3:
-		instruction = 0x00AF
-	}
-
-	return []uint16{instruction}, nil
+	return []uint16{shlOpcodes[s.Register]}, nil
 }
 
 func (s SHL) String() string {
@@ -134,19 +112,7 @@ func (s SHR) Size() int {
 }
 
 func (s SHR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16
-	switch s.Register {
-	case REG0:
-		instruction = 0x0090
-	case REG1:
-		instruction = 0x0095
-	case REG2:
-		instruction = 0x009A
-	case REG3:
-		instruction = 0x009F
-	}
-
-	return []uint16{instruction}, nil
+	return []uint16{shrOpcodes[s.Register]}, nil
 }
 
 func (s SHR) String() string {
@@ -170,19 +136,7 @@ func (j JR) Size() int {
 }
 
 func (j JR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16
-	switch j.Register {
-	case REG0:
-		instruction = 0x0030
-	case REG1:
-		instruction = 0x0031
-	case REG2:
-		instruction = 0x0032
-	case REG3:
-		instruction = 0x0033
-	}
-
-	return []uint16{instruction}, nil
+	return []uint16{jrOpcodes[j.Register]}, nil
 }
 
 func (j JR) String() string {
@@ -205,19 +159,7 @@ func (n NOT) Size() int {
 }
 
 func (n NOT) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16
-	switch n.Register {
-	case REG0:
-		instruction = 0x00B0
-	case REG1:
-		instruction = 0x00B5
-	case REG2:
-		instruction = 0x00BA
-	case REG3:
-		instruction = 0x00BF
-	}
-
-	return []uint16{instruction}, nil
+	return []uint16{notOpcodes[n.Register]}, nil
 }
 
 func (n NOT) String() string {
@@ -259,22 +201,7 @@ func (s STORE) Size() int {
 }
 
 func (s STORE) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var offset uint16
-
-	switch s.FromRegister {
-	case REG0:
-		offset = 0x0010
-	case REG1:
-		offset = 0x0014
-	case REG2:
-		offset = 0x0018
-	case REG3:
-		offset = 0x001C
-	}
-
-	var instruction uint16 = offset + uint16(s.ToRegister)
-
-	return []uint16{instruction}, nil
+	return []uint16{stBases[s.FromRegister] + uint16(s.ToRegister)}, nil
 }
 
 func (s STORE) String() string {
@@ -315,22 +242,7 @@ func (l LOAD) Size() int {
 }
 
 func (l LOAD) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var offset uint16
-
-	switch l.MemoryAddressReg {
-	case REG0:
-		offset = 0x0000
-	case REG1:
-		offset = 0x0004
-	case REG2:
-		offset = 0x0008
-	case REG3:
-		offset = 0x000C
-	}
-
-	var instruction uint16 = offset + uint16(l.ToRegister)
-
-	return []uint16{instruction}, nil
+	return []uint16{ldBases[l.MemoryAddressReg] + uint16(l.ToRegister)}, nil
 }
 
 func (l LOAD) String() string {
@@ -359,18 +271,14 @@ func (o OUT) Size() int {
 }
 
 func (o OUT) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16
-
 	switch o.IoMode {
 	case DATA_MODE:
-		instruction = 0x78 + uint16(o.FromRegister)
+		return []uint16{opOUTData + uint16(o.FromRegister)}, nil
 	case ADDRESS_MODE:
-		instruction = 0x7C + uint16(o.FromRegister)
+		return []uint16{opOUTAddr + uint16(o.FromRegister)}, nil
 	default:
 		return nil, fmt.Errorf("unsupported io mode for OUT instruction")
 	}
-
-	return []uint16{instruction}, nil
 }
 
 func (o OUT) String() string {
@@ -399,18 +307,14 @@ func (i IN) Size() int {
 }
 
 func (i IN) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16
-
 	switch i.IoMode {
 	case DATA_MODE:
-		instruction = 0x70 + uint16(i.ToRegister)
+		return []uint16{opINData + uint16(i.ToRegister)}, nil
 	case ADDRESS_MODE:
-		instruction = 0x74 + uint16(i.ToRegister)
+		return []uint16{opINAddr + uint16(i.ToRegister)}, nil
 	default:
 		return nil, fmt.Errorf("unsupported io mode for IN instruction")
 	}
-
-	return []uint16{instruction}, nil
 }
 
 func (i IN) String() string {
@@ -449,22 +353,7 @@ func (x XOR) Size() int {
 }
 
 func (x XOR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var offset uint16
-
-	switch x.ARegister {
-	case REG0:
-		offset = 0x00E0
-	case REG1:
-		offset = 0x00E4
-	case REG2:
-		offset = 0x00E8
-	case REG3:
-		offset = 0x00EC
-	}
-
-	var instruction uint16 = offset + uint16(x.BRegister)
-
-	return []uint16{instruction}, nil
+	return []uint16{xorBases[x.ARegister] + uint16(x.BRegister)}, nil
 }
 
 func (x XOR) String() string {
@@ -503,22 +392,7 @@ func (o OR) Size() int {
 }
 
 func (o OR) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var offset uint16
-
-	switch o.ARegister {
-	case REG0:
-		offset = 0x00D0
-	case REG1:
-		offset = 0x00D4
-	case REG2:
-		offset = 0x00D8
-	case REG3:
-		offset = 0x00DC
-	}
-
-	var instruction uint16 = offset + uint16(o.BRegister)
-
-	return []uint16{instruction}, nil
+	return []uint16{orBases[o.ARegister] + uint16(o.BRegister)}, nil
 }
 
 func (o OR) String() string {
@@ -557,22 +431,7 @@ func (a AND) Size() int {
 }
 
 func (a AND) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var offset uint16
-
-	switch a.ARegister {
-	case REG0:
-		offset = 0x00C0
-	case REG1:
-		offset = 0x00C4
-	case REG2:
-		offset = 0x00C8
-	case REG3:
-		offset = 0x00CC
-	}
-
-	var instruction uint16 = offset + uint16(a.BRegister)
-
-	return []uint16{instruction}, nil
+	return []uint16{andBases[a.ARegister] + uint16(a.BRegister)}, nil
 }
 
 func (a AND) String() string {
@@ -611,22 +470,7 @@ func (c CMP) Size() int {
 }
 
 func (c CMP) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var offset uint16
-
-	switch c.ARegister {
-	case REG0:
-		offset = 0x00F0
-	case REG1:
-		offset = 0x00F4
-	case REG2:
-		offset = 0x00F8
-	case REG3:
-		offset = 0x00FC
-	}
-
-	var instruction uint16 = offset + uint16(c.BRegister)
-
-	return []uint16{instruction}, nil
+	return []uint16{cmpBases[c.ARegister] + uint16(c.BRegister)}, nil
 }
 
 func (c CMP) String() string {
@@ -645,7 +489,7 @@ func (c CLF) Size() int {
 }
 
 func (c CLF) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	return []uint16{0x60}, nil
+	return []uint16{opCLF}, nil
 }
 
 func (c CLF) String() string {
@@ -665,39 +509,8 @@ func (j JMPF) Size() int {
 func (j JMPF) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
 	flags := strings.Join(j.Flags, "")
 
-	var instruction uint16
-	switch flags {
-	case "Z":
-		instruction = 0x0051
-	case "E":
-		instruction = 0x0052
-	case "EZ":
-		instruction = 0x0053
-	case "A":
-		instruction = 0x0054
-	case "AZ":
-		instruction = 0x0055
-	case "AE":
-		instruction = 0x0056
-	case "AEZ":
-		instruction = 0x0057
-	case "C":
-		instruction = 0x0058
-	case "CZ":
-		instruction = 0x0059
-	case "CE":
-		instruction = 0x005A
-	case "CEZ":
-		instruction = 0x005B
-	case "CA":
-		instruction = 0x005C
-	case "CAZ":
-		instruction = 0x005D
-	case "CAE":
-		instruction = 0x005E
-	case "CAEZ":
-		instruction = 0x005F
-	default:
+	instruction, ok := jmpfOpcodes[flags]
+	if !ok {
 		return nil, fmt.Errorf("unsupported flag combination '%s' for JMPF", flags)
 	}
 
@@ -723,13 +536,11 @@ type JMP struct {
 }
 
 func (j JMP) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var instruction uint16 = 0x0040
 	resolvedAddress, err := labelResolver(j.JumpLoc)
 	if err != nil {
 		return nil, err
 	}
-	return []uint16{instruction, resolvedAddress}, nil
-
+	return []uint16{opJMP, resolvedAddress}, nil
 }
 
 func (j JMP) String() string {
@@ -768,22 +579,7 @@ func (a ADD) Size() int {
 }
 
 func (a ADD) Emit(labelResolver LabelResolver, symbolResolver SymbolResolver) ([]uint16, error) {
-	var offset uint16
-
-	switch a.ARegister {
-	case REG0:
-		offset = 0x0080
-	case REG1:
-		offset = 0x0084
-	case REG2:
-		offset = 0x0088
-	case REG3:
-		offset = 0x008C
-	}
-
-	var instruction uint16 = offset + uint16(a.BRegister)
-
-	return []uint16{instruction}, nil
+	return []uint16{addBases[a.ARegister] + uint16(a.BRegister)}, nil
 }
 
 func (a ADD) String() string {

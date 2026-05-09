@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/utils"
 )
@@ -13,7 +14,7 @@ type Register struct {
 	enable    circuit.Wire
 	word      *Word
 	enabler   *Enabler
-	outputs   [BUS_WIDTH]circuit.Wire
+	outputs   [arch.BUS_WIDTH]circuit.Wire
 	inputBus  *Bus
 	outputBus *Bus
 }
@@ -52,7 +53,7 @@ func (r *Register) Unset() {
 }
 
 func (r *Register) Update() {
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		r.word.SetInputWire(i, r.inputBus.GetOutputWire(i))
 	}
 
@@ -64,7 +65,7 @@ func (r *Register) Update() {
 	}
 
 	if r.enable.Get() {
-		for i := BUS_WIDTH - 1; i >= 0; i-- {
+		for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 			r.outputBus.SetInputWire(i, r.outputs[i].Get())
 		}
 	}
@@ -73,7 +74,7 @@ func (r *Register) Update() {
 func (r *Register) Value() uint16 {
 	var value uint16
 	var x uint16 = 0
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if r.word.GetOutputWire(i) {
 			value = value | (1 << x)
 		} else {
@@ -88,7 +89,7 @@ func (r *Register) Value() uint16 {
 func (r *Register) String() string {
 	var output uint16
 	var x uint16 = 0
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if r.outputs[i].Get() {
 			output = output | (1 << x)
 		} else {

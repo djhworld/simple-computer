@@ -7,6 +7,7 @@ import (
 
 	"github.com/djhworld/simple-computer/components"
 	"github.com/djhworld/simple-computer/cpu"
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/io"
 	"github.com/djhworld/simple-computer/memory"
 )
@@ -37,7 +38,7 @@ func NewComputer(screenChannel chan *[160][240]byte, quitChannel chan bool) *Sim
 	c.screenChannel = screenChannel
 	c.quitChannel = quitChannel
 
-	c.mainBus = components.NewBus(16)
+	c.mainBus = components.NewBus(arch.BUS_WIDTH)
 	c.memory = memory.NewMemory64K(c.mainBus)
 	c.cpu = cpu.NewCPU(c.mainBus, c.memory)
 

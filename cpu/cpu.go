@@ -3,6 +3,7 @@ package cpu
 import (
 	"fmt"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/alu"
 	"github.com/djhworld/simple-computer/circuit"
 	"github.com/djhworld/simple-computer/components"
@@ -256,8 +257,6 @@ import (
 // 0x00FE = CMP R3, R2
 // 0x00FF = CMP R3, R3
 
-const BUS_WIDTH = 16
-
 const (
 	FLAGS_BUS_CARRY    = 0
 	FLAGS_BUS_A_LARGER = 1
@@ -389,7 +388,7 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	c.memory = memory
 
 	// REGISTERS
-	c.controlBus = components.NewBus(BUS_WIDTH)
+	c.controlBus = components.NewBus(arch.BUS_WIDTH)
 	c.mainBus = mainBus
 	c.gpReg0 = *components.NewRegister("R0", c.mainBus, c.mainBus)
 	c.gpReg1 = *components.NewRegister("R1", c.mainBus, c.mainBus)
@@ -407,8 +406,8 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	c.instrDecoder3x8 = *NewInstructionDecoder3x8()
 
 	// FLAGS
-	c.aluToFlagsBus = components.NewBus(BUS_WIDTH)
-	c.flagsBus = components.NewBus(BUS_WIDTH)
+	c.aluToFlagsBus = components.NewBus(arch.BUS_WIDTH)
+	c.flagsBus = components.NewBus(arch.BUS_WIDTH)
 	c.flags = *components.NewRegister("FLAGS", c.aluToFlagsBus, c.flagsBus)
 	// flags register is always enabled, and we initialise it with value 0
 	updateEnableStatus(&c.flags, true)
@@ -417,7 +416,7 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	updateSetStatus(&c.flags, false)
 
 	// TMP
-	c.tmpBus = components.NewBus(BUS_WIDTH)
+	c.tmpBus = components.NewBus(arch.BUS_WIDTH)
 	c.tmp = *components.NewRegister("TMP", c.mainBus, c.tmpBus)
 	// tmp register is always enabled, and we initialise it with value 0
 	updateEnableStatus(&c.tmp, true)
@@ -426,11 +425,11 @@ func NewCPU(mainBus *components.Bus, memory *memory.Memory64K) *CPU {
 	updateSetStatus(&c.tmp, false)
 
 	// BUS 1
-	c.busOneOutput = components.NewBus(BUS_WIDTH)
+	c.busOneOutput = components.NewBus(arch.BUS_WIDTH)
 	c.busOne = *components.NewBusOne(c.tmpBus, c.busOneOutput)
 
 	// ACC
-	c.accBus = components.NewBus(BUS_WIDTH)
+	c.accBus = components.NewBus(arch.BUS_WIDTH)
 	c.acc = *components.NewRegister("ACC", c.accBus, c.mainBus)
 
 	// ALU
@@ -586,7 +585,7 @@ func (c *CPU) step(clockState bool) {
 }
 
 func (c *CPU) clearMainBus() {
-	for i := 0; i < BUS_WIDTH; i++ {
+	for i := 0; i < arch.BUS_WIDTH; i++ {
 		c.mainBus.SetInputWire(i, false)
 	}
 }

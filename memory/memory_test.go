@@ -3,11 +3,12 @@ package memory
 import (
 	"testing"
 
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/components"
 )
 
 func TestMemory64KWrite(t *testing.T) {
-	bus := components.NewBus(BUS_WIDTH)
+	bus := components.NewBus(arch.BUS_WIDTH)
 	m := NewMemory64K(bus)
 
 	var i uint16
@@ -51,7 +52,7 @@ func TestMemory64KWrite(t *testing.T) {
 }
 
 func TestMemory64KDoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
-	bus := components.NewBus(BUS_WIDTH)
+	bus := components.NewBus(arch.BUS_WIDTH)
 	m := NewMemory64K(bus)
 
 	var i uint16
@@ -93,7 +94,7 @@ func TestMemory64KDoesNotUpdateWhenSetFlagIsOff(t *testing.T) {
 
 func checkBus(b *components.Bus, expected uint16) bool {
 	var result uint16
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if b.GetOutputWire(i) {
 			result = result | (1 << uint16(i))
 		} else {

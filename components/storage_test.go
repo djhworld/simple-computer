@@ -2,6 +2,8 @@ package components
 
 import (
 	"testing"
+
+	"github.com/djhworld/simple-computer/arch"
 )
 
 func TestBit(t *testing.T) {
@@ -57,12 +59,12 @@ func TestWordWithSetOn(t *testing.T) {
 	d.Update()
 	w.Update(true)
 
-	results := [16]bool{}
+	results := [arch.BUS_WIDTH]bool{}
 	for i, w := range w.outputs {
 		results[i] = w.Get()
 	}
 
-	if results != [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true} {
+	if results != [arch.BUS_WIDTH]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true} {
 		t.FailNow()
 	}
 }

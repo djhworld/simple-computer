@@ -1,6 +1,7 @@
 package components
 
 import (
+	"github.com/djhworld/simple-computer/arch"
 	"github.com/djhworld/simple-computer/circuit"
 )
 
@@ -40,9 +41,9 @@ func (m *Bit) Update(wireI bool, wireS bool) {
 }
 
 type Word struct {
-	inputs  [16]circuit.Wire
-	bits    [16]Bit
-	outputs [16]circuit.Wire
+	inputs  [arch.BUS_WIDTH]circuit.Wire
+	bits    [arch.BUS_WIDTH]Bit
+	outputs [arch.BUS_WIDTH]circuit.Wire
 	next    Component
 }
 

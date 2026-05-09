@@ -2,10 +2,12 @@ package components
 
 import (
 	"testing"
+
+	"github.com/djhworld/simple-computer/arch"
 )
 
 func TestRegisterWordIsSet(t *testing.T) {
-	b := NewBus(BUS_WIDTH)
+	b := NewBus(arch.BUS_WIDTH)
 	setBus(b, 0x3957)
 
 	r := NewRegister("r", b, b)
@@ -38,7 +40,7 @@ func TestRegisterWordIsSet(t *testing.T) {
 }
 
 func TestRegisterOutputIsZeroWhenDisabled(t *testing.T) {
-	b := NewBus(BUS_WIDTH)
+	b := NewBus(arch.BUS_WIDTH)
 	setBus(b, 0xABF1)
 
 	r := NewRegister("r", b, b)
@@ -60,7 +62,7 @@ func TestRegisterOutputIsZeroWhenDisabled(t *testing.T) {
 }
 
 func TestRegisterOutputIsWordValueWhenEnable(t *testing.T) {
-	b := NewBus(BUS_WIDTH)
+	b := NewBus(arch.BUS_WIDTH)
 	setBus(b, 0x54F1)
 
 	r := NewRegister("r", b, b)
@@ -75,7 +77,7 @@ func TestRegisterOutputIsWordValueWhenEnable(t *testing.T) {
 }
 
 func TestBusIsUpdatedOnRegisterEnable(t *testing.T) {
-	b := NewBus(BUS_WIDTH)
+	b := NewBus(arch.BUS_WIDTH)
 	r := NewRegister("r", b, b)
 	setBus(b, 0x32F1)
 
@@ -94,8 +96,8 @@ func TestBusIsUpdatedOnRegisterEnable(t *testing.T) {
 }
 
 func TestOutputBusIsUsedWhenDifferentFromInputBus(t *testing.T) {
-	inputBus := NewBus(BUS_WIDTH)
-	outputBus := NewBus(BUS_WIDTH)
+	inputBus := NewBus(arch.BUS_WIDTH)
+	outputBus := NewBus(arch.BUS_WIDTH)
 	r := NewRegister("r", inputBus, outputBus)
 	setBus(inputBus, 0x00F1)
 	setBus(outputBus, 0x0093)
@@ -120,7 +122,7 @@ func TestOutputBusIsUsedWhenDifferentFromInputBus(t *testing.T) {
 }
 
 func TestBusIsNOTUpdatedOnRegisterDisabled(t *testing.T) {
-	b := NewBus(BUS_WIDTH)
+	b := NewBus(arch.BUS_WIDTH)
 	r := NewRegister("r", b, b)
 	setBus(b, 0x00F1)
 
@@ -140,7 +142,7 @@ func TestBusIsNOTUpdatedOnRegisterDisabled(t *testing.T) {
 
 func checkValueIs(b Component, expected uint16) bool {
 	var result uint16
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if b.GetOutputWire(i) {
 			result = result | (1 << uint16(i))
 		} else {
@@ -152,7 +154,7 @@ func checkValueIs(b Component, expected uint16) bool {
 
 func checkRegisterOutput(r *Register, expected uint16) bool {
 	var result uint16
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if r.outputs[i].Get() {
 			result = result | (1 << uint16(i))
 		} else {
@@ -163,7 +165,7 @@ func checkRegisterOutput(r *Register, expected uint16) bool {
 }
 
 func setBus(b *Bus, value uint16) {
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		r := (value & (1 << uint16(i)))
 		if r != 0 {
 			b.SetInputWire(i, true)
@@ -175,7 +177,7 @@ func setBus(b *Bus, value uint16) {
 
 func checkBus(b *Bus, expected uint16) bool {
 	var result uint16
-	for i := BUS_WIDTH - 1; i >= 0; i-- {
+	for i := arch.BUS_WIDTH - 1; i >= 0; i-- {
 		if b.GetOutputWire(i) {
 			result = result | (1 << uint16(i))
 		} else {
