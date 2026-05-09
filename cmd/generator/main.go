@@ -40,6 +40,12 @@ func main() {
 	case "me":
 		me(instructions)
 		return
+	case "counter":
+		counter(instructions)
+		return
+	case "sine":
+		sineWave(instructions)
+		return
 	default:
 		log.Fatalf("unknown program: %s", program)
 	}

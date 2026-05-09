@@ -32,4 +32,12 @@ Use the keyboard to type ASCII characters, which get rendered on the display.
 Hit enter to perform a carriage return.
 
 Note: not all keys work or will render garbage, e.g. backspace.
-Also modifier keys are not supported so rendering symbols that require them (e.g. shift) won't work. 
+Also modifier keys are not supported so rendering symbols that require them (e.g. shift) won't work.
+
+# counter.bin
+
+Displays a 16-bit hexadecimal counter that increments continuously from `0x0000` to `0xFFFF`, then wraps back to zero.
+
+# sine.bin
+
+Displays a scrolling sine wave animation. Thirty dots are plotted across the display — one per character column — using a precomputed lookup table. Each frame the table rotates by one entry, making the wave appear to scroll horizontally.

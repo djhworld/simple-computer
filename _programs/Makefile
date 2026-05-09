@@ -1,4 +1,4 @@
-all: ascii brush text-writer me
+all: ascii brush text-writer me counter
 
 ascii:
 	../bin/generator ascii > ascii.asm
@@ -15,3 +15,11 @@ brush:
 me:
 	../bin/generator me > me.asm
 	../bin/assembler -i me.asm -o me.bin
+
+counter:
+	../bin/generator counter > counter.asm
+	../bin/assembler -i counter.asm -o counter.bin
+
+sine:
+	../bin/generator sine > sine.asm
+	../bin/assembler -i sine.asm -o sine.bin
